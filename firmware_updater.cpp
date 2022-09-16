@@ -1,7 +1,7 @@
 #include "firmware_updater.h"
 #include <esp_wifi.h>
 
-#include <utilities.h>
+#include <Arduino.h>
 
 #include <WiFi.h>
 #include <WiFiAP.h>
@@ -22,6 +22,14 @@ IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 0, 0);
 IPAddress primaryDNS(8, 8, 8, 8);   //optional
 IPAddress secondaryDNS(8, 8, 4, 4); //optional
+
+static inline bool is_time_to_execute(uint32_t& ms_since_last_call, uint32_t time_between_calls) {
+    if (millis() - ms_since_last_call >= time_between_calls) {
+      ms_since_last_call = millis();
+      return true;
+    }
+    return false;
+}
 
 void Firmware_updater::init_firmware_update_system(void) {
     Serial.begin(115200);
