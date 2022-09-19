@@ -1,3 +1,5 @@
+#ifdef ESP32
+
 #pragma once
 #include <Arduino.h>
 
@@ -18,3 +20,5 @@ private:
     uint32_t ms_since_last_check = millis();
     int seconds_until_deactivation = 0;
 };
+
+#endif // ESP32

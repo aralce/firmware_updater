@@ -1,3 +1,5 @@
+#ifdef ESP32
+
 #include "firmware_updater.h"
 #include <esp_wifi.h>
 
@@ -76,3 +78,5 @@ void Firmware_updater::run_pending_tasks() {
     }
     --seconds_until_deactivation;
 }
+
+#endif // ESP32
