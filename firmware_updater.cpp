@@ -25,12 +25,12 @@ IPAddress subnet(255, 255, 0, 0);
 IPAddress primaryDNS(8, 8, 8, 8);   //optional
 IPAddress secondaryDNS(8, 8, 4, 4); //optional
 
-static inline bool is_time_to_execute(uint32_t& ms_since_last_call, uint32_t time_between_calls) {
-    if (millis() - ms_since_last_call >= time_between_calls) {
+static inline bool is_NOT_time_to_execute(uint32_t& ms_since_last_call, uint32_t time_between_calls) {
+    if (millis() - ms_since_last_call >= time_between_calls ) {
       ms_since_last_call = millis();
-      return true;
+      return false;
     }
-    return false;
+    return true;
 }
 
 void Firmware_updater::init_firmware_update_system(void) {
@@ -57,25 +57,63 @@ void Firmware_updater::init_firmware_update_system(void) {
     Serial.println("HTTP server started");
 }
 
-void Firmware_updater::set_seconds_to_be_active(int seconds) {
+void Firmware_updater::set_seconds_to_be_active_without_client(int seconds) {
     should_run_forever = false;
     seconds_until_deactivation = seconds;
 }
 
+void Firmware_updater::set_stop_only_after_client_disconnection() {
+    should_stop_only_after_client_disconnection = true;
+}
+
+bool is_there_any_client_connected() {
+    return WiFi.softAPgetStationNum() > 0;
+}
+
+void stop_firmware_updater();
+
 void Firmware_updater::run_pending_tasks() {
-    if (!is_time_to_execute(ms_since_last_check, 1000))
+    if (is_NOT_time_to_execute(ms_since_last_check, 1000))
         return;
+
+    if (should_stop_firmware_updater_by_client_disconnection()) {
+        stop_firmware_updater();
+        return;
+    }
+
     if (should_run_forever)
         return;
-    
+
     if (seconds_until_deactivation <= 0) {
         seconds_until_deactivation = 0;
-        server.end();
-        esp_wifi_stop();
-        Serial.println("Server deactivated");
+        stop_firmware_updater();
         return;
     }
     --seconds_until_deactivation;
+}
+
+bool Firmware_updater::should_stop_firmware_updater_by_client_disconnection() {
+    if (not should_stop_only_after_client_disconnection)
+        return false;
+
+    if (is_there_any_client_connected())
+        was_there_any_client = true;
+    else if (was_there_any_client)
+        return true;
+    
+    return false;
+}
+
+void stop_firmware_updater() {
+    server.end();
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    
+    static bool running = true;
+    if (running) {
+        running = false;
+        Serial.println("Server deactivated");
+    }
 }
 
 #endif // ESP32
