@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #define WIFI_NAME "Upgrade Energy Tech"
-#define WIFI_PASSWORD "1234"
+#define WIFI_PASSWORD "123456789"
 
 class Firmware_updater {
 public:

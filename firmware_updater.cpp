@@ -7,9 +7,9 @@
 
 #include <WiFi.h>
 #include <WiFiAP.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <AsyncElegantOTA.h>
+#include "AsyncTCP.h"
+#include "ESPAsyncWebServer.h"
+#include "AsyncElegantOTA.h"
 
 const char* ssid = WIFI_NAME;
 const char* password = WIFI_PASSWORD;
@@ -47,8 +47,7 @@ void Firmware_updater::init_firmware_update_system(void) {
     IPAddress myIP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(myIP);
-    server.begin();
-       server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->redirect("/update");
     });
     
