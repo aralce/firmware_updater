@@ -55,6 +55,7 @@ void Firmware_updater::init_firmware_update_system(void) {
     
     server.begin();
     Serial.println("HTTP server started");
+    is_active = true;
 }
 
 void Firmware_updater::set_seconds_to_be_active_without_client(int seconds) {
@@ -69,8 +70,6 @@ void Firmware_updater::set_stop_only_after_client_disconnection() {
 bool is_there_any_client_connected() {
     return WiFi.softAPgetStationNum() > 0;
 }
-
-void stop_firmware_updater();
 
 void Firmware_updater::run_pending_tasks() {
     if (is_NOT_time_to_execute(ms_since_last_check, 1000))
@@ -104,11 +103,12 @@ bool Firmware_updater::should_stop_firmware_updater_by_client_disconnection() {
     return false;
 }
 
-void stop_firmware_updater() {
+void Firmware_updater::stop_firmware_updater() {
     server.end();
     esp_wifi_stop();
     esp_wifi_deinit();
-    
+    is_active = false;
+
     static bool running = true;
     if (running) {
         running = false;

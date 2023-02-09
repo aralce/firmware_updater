@@ -14,6 +14,8 @@ public:
 
     void set_stop_only_after_client_disconnection();
 
+    bool is_server_active() { return is_active;}
+
     void run_pending_tasks();
 
 private:
@@ -24,7 +26,10 @@ private:
     uint32_t ms_since_last_check = millis();
     int seconds_until_deactivation = 0;
 
+    bool is_active = false;
+
     bool should_stop_firmware_updater_by_client_disconnection();
+    void stop_firmware_updater();
 };
 
 #endif // ESP32
