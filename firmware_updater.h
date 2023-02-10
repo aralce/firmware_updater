@@ -14,7 +14,9 @@ public:
 
     void set_stop_only_after_client_disconnection();
 
-    bool is_server_active() { return is_active;}
+    bool is_server_ACTIVE() { return is_active;}
+
+    bool is_server_INACTIVE() { return not is_active;}
 
     void run_pending_tasks();
 
@@ -29,6 +31,7 @@ private:
     bool is_active = false;
 
     bool should_stop_firmware_updater_by_client_disconnection();
+    bool should_stop_firmware_updater_by_time();
     void stop_firmware_updater();
 };
 

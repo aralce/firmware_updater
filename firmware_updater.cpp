@@ -83,12 +83,10 @@ void Firmware_updater::run_pending_tasks() {
     if (should_run_forever)
         return;
 
-    if (seconds_until_deactivation <= 0) {
-        seconds_until_deactivation = 0;
+    if (should_stop_firmware_updater_by_time()) {
         stop_firmware_updater();
         return;
     }
-    --seconds_until_deactivation;
 }
 
 bool Firmware_updater::should_stop_firmware_updater_by_client_disconnection() {
@@ -100,6 +98,20 @@ bool Firmware_updater::should_stop_firmware_updater_by_client_disconnection() {
     else if (was_there_any_client)
         return true;
     
+    return false;
+}
+
+bool Firmware_updater::should_stop_firmware_updater_by_time() {
+    if (was_there_any_client)
+        return false;
+    
+    if (seconds_until_deactivation <= 0) {
+        seconds_until_deactivation = 0;
+        stop_firmware_updater();
+        return true;
+    }
+
+    --seconds_until_deactivation;
     return false;
 }
 
