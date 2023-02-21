@@ -35,7 +35,8 @@ static inline bool is_NOT_time_to_execute(uint32_t& ms_since_last_call, uint32_t
 
 void Firmware_updater::init_firmware_update_system(void) {
     Serial.begin(115200);
-    
+
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
     WiFi.mode(WIFI_AP);
        // You can remove the password parameter if you want the AP to be open.
     if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
