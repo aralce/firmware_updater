@@ -19,6 +19,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // #include "Arduino.h"
+#include "WString_.h"
 #include "WebAuthentication.h"
 #include <libb64/cencode.h>
 #ifdef ESP32

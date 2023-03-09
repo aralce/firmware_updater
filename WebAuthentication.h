@@ -23,7 +23,7 @@
 #define WEB_AUTHENTICATION_H_
 
 #include <stdio.h>
-#include "String_.h"
+#include "WString_.h"
 
 bool checkBasicAuthentication(const char * header, const char * username, const char * password);
 String_ requestDigestAuthentication(const char * realm);

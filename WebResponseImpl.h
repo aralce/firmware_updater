@@ -64,20 +64,6 @@ class AsyncAbstractResponse: public AsyncWebServerResponse {
 #endif
 
 #define TEMPLATE_PARAM_NAME_LENGTH 32
-class AsyncFileResponse: public AsyncAbstractResponse {
-  using File = fs::File;
-  using FS = fs::FS;
-  private:
-    File _content;
-    String_ _path;
-    void _setContentType(const String_& path);
-  public:
-    AsyncFileResponse(FS &fs, const String_& path, const String_& contentType=String_(), bool download=false, AwsTemplateProcessor callback=nullptr);
-    AsyncFileResponse(File content, const String_& path, const String_& contentType=String_(), bool download=false, AwsTemplateProcessor callback=nullptr);
-    ~AsyncFileResponse();
-    bool _sourceValid() const { return !!(_content); }
-    virtual size_t _fillBuffer(uint8_t *buf, size_t maxLen) override;
-};
 
 class AsyncStreamResponse: public AsyncAbstractResponse {
   private:

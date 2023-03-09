@@ -18,6 +18,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "WString_.h"
 #include "ESPAsyncWebServer.h"
 #include "WebResponseImpl.h"
 #include "WebAuthentication.h"
@@ -91,10 +92,6 @@ AsyncWebServerRequest::~AsyncWebServerRequest(){
 
   if(_tempObject != NULL){
     free(_tempObject);
-  }
-
-  if(_tempFile){
-    _tempFile.close();
   }
 }
 
@@ -730,18 +727,6 @@ AsyncWebServerResponse * AsyncWebServerRequest::beginResponse(int code, const St
   return new AsyncBasicResponse(code, contentType, content);
 }
 
-AsyncWebServerResponse * AsyncWebServerRequest::beginResponse(FS &fs, const String_& path, const String_& contentType, bool download, AwsTemplateProcessor callback){
-  if(fs.exists(path) || (!download && fs.exists(path+".gz")))
-    return new AsyncFileResponse(fs, path, contentType, download, callback);
-  return NULL;
-}
-
-AsyncWebServerResponse * AsyncWebServerRequest::beginResponse(File content, const String_& path, const String_& contentType, bool download, AwsTemplateProcessor callback){
-  if(content == true)
-    return new AsyncFileResponse(content, path, contentType, download, callback);
-  return NULL;
-}
-
 AsyncWebServerResponse * AsyncWebServerRequest::beginResponse(Stream &stream, const String_& contentType, size_t len, AwsTemplateProcessor callback){
   return new AsyncStreamResponse(stream, contentType, len, callback);
 }
@@ -770,18 +755,6 @@ AsyncWebServerResponse * AsyncWebServerRequest::beginResponse_P(int code, const 
 
 void AsyncWebServerRequest::send(int code, const String_& contentType, const String_& content){
   send(beginResponse(code, contentType, content));
-}
-
-void AsyncWebServerRequest::send(FS &fs, const String_& path, const String_& contentType, bool download, AwsTemplateProcessor callback){
-  if(fs.exists(path) || (!download && fs.exists(path+".gz"))){
-    send(beginResponse(fs, path, contentType, download, callback));
-  } else send(404);
-}
-
-void AsyncWebServerRequest::send(File content, const String_& path, const String_& contentType, bool download, AwsTemplateProcessor callback){
-  if(content == true){
-    send(beginResponse(content, path, contentType, download, callback));
-  } else send(404);
 }
 
 void AsyncWebServerRequest::send(Stream &stream, const String_& contentType, size_t len, AwsTemplateProcessor callback){

@@ -21,47 +21,13 @@
 #ifndef ASYNCWEBSERVERHANDLERIMPL_H_
 #define ASYNCWEBSERVERHANDLERIMPL_H_
 
-#include "String_.h"
+#include "WString_.h"
 #ifdef ASYNCWEBSERVER_REGEX
 #include <regex>
 #endif
 
 #include "stddef.h"
 #include <time.h>
-
-class AsyncStaticWebHandler: public AsyncWebHandler {
-   using File = fs::File;
-   using FS = fs::FS;
-  private:
-    bool _getFile(AsyncWebServerRequest *request);
-    bool _fileExists(AsyncWebServerRequest *request, const String_& path);
-    uint8_t _countBits(const uint8_t value) const;
-  protected:
-    FS _fs;
-    String_ _uri;
-    String_ _path;
-    String_ _default_file;
-    String_ _cache_control;
-    String_ _last_modified;
-    AwsTemplateProcessor _callback;
-    bool _isDir;
-    bool _gzipFirst;
-    uint8_t _gzipStats;
-  public:
-    AsyncStaticWebHandler(const char* uri, FS& fs, const char* path, const char* cache_control);
-    virtual bool canHandle(AsyncWebServerRequest *request) override final;
-    virtual void handleRequest(AsyncWebServerRequest *request) override final;
-    AsyncStaticWebHandler& setIsDir(bool isDir);
-    AsyncStaticWebHandler& setDefaultFile(const char* filename);
-    AsyncStaticWebHandler& setCacheControl(const char* cache_control);
-    AsyncStaticWebHandler& setLastModified(const char* last_modified);
-    AsyncStaticWebHandler& setLastModified(struct tm* last_modified);
-  #ifdef ESP8266
-    AsyncStaticWebHandler& setLastModified(time_t last_modified);
-    AsyncStaticWebHandler& setLastModified(); //sets to current time. Make sure sntp is runing and time is updated
-  #endif
-    AsyncStaticWebHandler& setTemplateProcessor(AwsTemplateProcessor newCallback) {_callback = newCallback; return *this;}
-};
 
 class AsyncCallbackWebHandler: public AsyncWebHandler {
   private:
@@ -105,6 +71,7 @@ class AsyncCallbackWebHandler: public AsyncWebHandler {
         }
       } else 
 #endif
+      String_ slash("/");
       if (_uri.length() && _uri.startsWith("/*.")) {
          String_ uriTemplate = String_ (_uri);
          uriTemplate = uriTemplate.substring(uriTemplate.lastIndexOf("."));
@@ -118,7 +85,7 @@ class AsyncCallbackWebHandler: public AsyncWebHandler {
         if (!request->url().startsWith(uriTemplate))
           return false;
       }
-      else if(_uri.length() && (_uri != request->url() && !request->url().startsWith(_uri+"/")))
+      else if(_uri.length() && (_uri != request->url() && !request->url().startsWith(_uri+slash)))
         return false;
 
       request->addInterestingHeader("ANY");

@@ -22,8 +22,6 @@
 #define _ESPAsyncWebServer_H_
 
 #include <functional>
-#include "FS.h"
-
 #include "StringArray.h"
 
 #if defined(ESP32) || defined(LIBRETUYA)
@@ -51,7 +49,6 @@ class AsyncWebHeader;
 class AsyncWebParameter;
 class AsyncWebRewrite;
 class AsyncWebHandler;
-class AsyncStaticWebHandler;
 class AsyncCallbackWebHandler;
 class AsyncResponseStream;
 
@@ -130,8 +127,6 @@ typedef std::function<size_t(uint8_t*, size_t, size_t)> AwsResponseFiller;
 typedef std::function<String_(const String_&)> AwsTemplateProcessor;
 
 class AsyncWebServerRequest {
-  using File = fs::File;
-  using FS = fs::FS;
   friend class AsyncWebServer;
   friend class AsyncCallbackWebHandler;
   private:
@@ -199,7 +194,6 @@ class AsyncWebServerRequest {
     void _handleUploadEnd();
 
   public:
-    File _tempFile;
     void *_tempObject;
 
     AsyncWebServerRequest(AsyncWebServer*, AsyncClient*);
@@ -233,8 +227,6 @@ class AsyncWebServerRequest {
 
     void send(AsyncWebServerResponse *response);
     void send(int code, const String_& contentType=String_(), const String_& content=String_());
-    void send(FS &fs, const String_& path, const String_& contentType=String_(), bool download=false, AwsTemplateProcessor callback=nullptr);
-    void send(File content, const String_& path, const String_& contentType=String_(), bool download=false, AwsTemplateProcessor callback=nullptr);
     void send(Stream &stream, const String_& contentType, size_t len, AwsTemplateProcessor callback=nullptr);
     void send(const String_& contentType, size_t len, AwsResponseFiller callback, AwsTemplateProcessor templateCallback=nullptr);
     void sendChunked(const String_& contentType, AwsResponseFiller callback, AwsTemplateProcessor templateCallback=nullptr);
@@ -242,8 +234,6 @@ class AsyncWebServerRequest {
     void send_P(int code, const String_& contentType, PGM_P content, AwsTemplateProcessor callback=nullptr);
 
     AsyncWebServerResponse *beginResponse(int code, const String_& contentType=String_(), const String_& content=String_());
-    AsyncWebServerResponse *beginResponse(FS &fs, const String_& path, const String_& contentType=String_(), bool download=false, AwsTemplateProcessor callback=nullptr);
-    AsyncWebServerResponse *beginResponse(File content, const String_& path, const String_& contentType=String_(), bool download=false, AwsTemplateProcessor callback=nullptr);
     AsyncWebServerResponse *beginResponse(Stream &stream, const String_& contentType, size_t len, AwsTemplateProcessor callback=nullptr);
     AsyncWebServerResponse *beginResponse(const String_& contentType, size_t len, AwsResponseFiller callback, AwsTemplateProcessor templateCallback=nullptr);
     AsyncWebServerResponse *beginChunkedResponse(const String_& contentType, AwsResponseFiller callback, AwsTemplateProcessor templateCallback=nullptr);
@@ -422,8 +412,6 @@ class AsyncWebServer {
     AsyncCallbackWebHandler& on(const char* uri, WebRequestMethodComposite method, ArRequestHandlerFunction onRequest);
     AsyncCallbackWebHandler& on(const char* uri, WebRequestMethodComposite method, ArRequestHandlerFunction onRequest, ArUploadHandlerFunction onUpload);
     AsyncCallbackWebHandler& on(const char* uri, WebRequestMethodComposite method, ArRequestHandlerFunction onRequest, ArUploadHandlerFunction onUpload, ArBodyHandlerFunction onBody);
-
-    AsyncStaticWebHandler& serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
 
     void onNotFound(ArRequestHandlerFunction fn);  //called when handler is not assigned
     void onFileUpload(ArUploadHandlerFunction fn); //handle file uploads

@@ -1,13 +1,13 @@
 #ifndef AsyncElegantOTA_h
 #define AsyncElegantOTA_h
 
+#include "WString_.h"
 #include "stdlib_noniso.h"
 
 #if defined(ESP8266)
     #include "ESP8266WiFi.h"
     #include "ESPAsyncTCP.h"
     #include "flash_hal.h"
-    #include "FS.h"
 #elif defined(ESP32)
     #include "WiFi.h"
     #include "AsyncTCP.h"
@@ -18,8 +18,6 @@
 
 #include "Hash.h"
 #include "ESPAsyncWebServer.h"
-#include "FS.h"
-
 #include "elegantWebpage.h"
 
 
