@@ -19,9 +19,10 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "Arduino.h"
-
+#include <HAL_system/HAL_system_singleton.h>
+#include <freertos/FreeRTOS.h>
 #include "AsyncTCP.h"
+#include <esp32-hal-log.h>
 extern "C"{
 #include "lwip/opt.h"
 #include "lwip/tcp.h"
@@ -32,6 +33,9 @@ extern "C"{
 #if CONFIG_ASYNC_TCP_USE_WDT
 #include "esp_task_wdt.h"
 #endif
+
+static HAL_system_api* device = HAL_system_singleton::get_HAL_system_instance();
+#define millis() device->millisecs_since_init()
 
 /*
  * TCP/IP Event Task

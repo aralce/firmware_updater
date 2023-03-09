@@ -174,7 +174,7 @@ typedef std::function<void(AsyncWebServerRequest *request, JsonVariant &json)> A
 class AsyncCallbackJsonWebHandler: public AsyncWebHandler {
 private:
 protected:
-  const String _uri;
+  const String_ _uri;
   WebRequestMethodComposite _method;
   ArJsonRequestHandlerFunction _onRequest;
   size_t _contentLength;
@@ -184,10 +184,10 @@ protected:
   size_t _maxContentLength;
 public:
 #ifdef ARDUINOJSON_5_COMPATIBILITY      
-  AsyncCallbackJsonWebHandler(const String& uri, ArJsonRequestHandlerFunction onRequest) 
+  AsyncCallbackJsonWebHandler(const String_& uri, ArJsonRequestHandlerFunction onRequest) 
   : _uri(uri), _method(HTTP_POST|HTTP_PUT|HTTP_PATCH), _onRequest(onRequest), _maxContentLength(16384) {}
 #else
-  AsyncCallbackJsonWebHandler(const String& uri, ArJsonRequestHandlerFunction onRequest, size_t maxJsonBufferSize=DYNAMIC_JSON_DOCUMENT_SIZE) 
+  AsyncCallbackJsonWebHandler(const String_& uri, ArJsonRequestHandlerFunction onRequest, size_t maxJsonBufferSize=DYNAMIC_JSON_DOCUMENT_SIZE) 
   : _uri(uri), _method(HTTP_POST|HTTP_PUT|HTTP_PATCH), _onRequest(onRequest), maxJsonBufferSize(maxJsonBufferSize), _maxContentLength(16384) {}
 #endif
   
@@ -236,7 +236,7 @@ public:
       request->send(500);
     }
   }
-  virtual void handleUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) override final {
+  virtual void handleUpload(AsyncWebServerRequest *request, const String_& filename, size_t index, uint8_t *data, size_t len, bool final) override final {
   }
   virtual void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) override final {
     if (_onRequest) {

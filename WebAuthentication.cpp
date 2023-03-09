@@ -18,6 +18,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+// #include "Arduino.h"
 #include "WebAuthentication.h"
 #include <libb64/cencode.h>
 #ifdef ESP32
@@ -86,7 +87,7 @@ static bool getMD5(uint8_t * data, uint16_t len, char * output){//33 bytes or mo
   return true;
 }
 
-static String genRandomMD5(){
+static String_ genRandomMD5(){
 #ifdef ESP8266
   uint32_t r = RANDOM_REG32;
 #else
@@ -95,30 +96,30 @@ static String genRandomMD5(){
   char * out = (char*)malloc(33);
   if(out == NULL || !getMD5((uint8_t*)(&r), 4, out))
     return "";
-  String res = String(out);
+  String_ res = String_(out);
   free(out);
   return res;
 }
 
-static String stringMD5(const String& in){
+static String_ stringMD5(const String_& in){
   char * out = (char*)malloc(33);
   if(out == NULL || !getMD5((uint8_t*)(in.c_str()), in.length(), out))
     return "";
-  String res = String(out);
+  String_ res = String_(out);
   free(out);
   return res;
 }
 
-String generateDigestHash(const char * username, const char * password, const char * realm){
+String_ generateDigestHash(const char * username, const char * password, const char * realm){
   if(username == NULL || password == NULL || realm == NULL){
     return "";
   }
   char * out = (char*)malloc(33);
-  String res = String(username);
+  String_ res = String_(username);
   res.concat(":");
   res.concat(realm);
   res.concat(":");
-  String in = res;
+  String_ in = res;
   in.concat(password);
   if(out == NULL || !getMD5((uint8_t*)(in.c_str()), in.length(), out))
     return "";
@@ -127,8 +128,8 @@ String generateDigestHash(const char * username, const char * password, const ch
   return res;
 }
 
-String requestDigestAuthentication(const char * realm){
-  String header = "realm=\"";
+String_ requestDigestAuthentication(const char * realm){
+  String_ header = "realm=\"";
   if(realm == NULL)
     header.concat("asyncesp");
   else
@@ -147,25 +148,25 @@ bool checkDigestAuthentication(const char * header, const char * method, const c
     return false;
   }
 
-  String myHeader = String(header);
+  String_ myHeader = String_(header);
   int nextBreak = myHeader.indexOf(",");
   if(nextBreak < 0){
     //os_printf("AUTH FAIL: no variables\n");
     return false;
   }
 
-  String myUsername = String();
-  String myRealm = String();
-  String myNonce = String();
-  String myUri = String();
-  String myResponse = String();
-  String myQop = String();
-  String myNc = String();
-  String myCnonce = String();
+  String_ myUsername = String_();
+  String_ myRealm = String_();
+  String_ myNonce = String_();
+  String_ myUri = String_();
+  String_ myResponse = String_();
+  String_ myQop = String_();
+  String_ myNc = String_();
+  String_ myCnonce = String_();
 
   myHeader += ", ";
   do {
-    String avLine = myHeader.substring(0, nextBreak);
+    String_ avLine = myHeader.substring(0, nextBreak);
     avLine.trim();
     myHeader = myHeader.substring(nextBreak+1);
     nextBreak = myHeader.indexOf(",");
@@ -175,7 +176,7 @@ bool checkDigestAuthentication(const char * header, const char * method, const c
       //os_printf("AUTH FAIL: no = sign\n");
       return false;
     }
-    String varName = avLine.substring(0, eqSign);
+    String_ varName = avLine.substring(0, eqSign);
     avLine = avLine.substring(eqSign + 1);
     if(avLine.startsWith("\"")){
       avLine = avLine.substring(1, avLine.length() - 1);
@@ -221,9 +222,10 @@ bool checkDigestAuthentication(const char * header, const char * method, const c
     }
   } while(nextBreak > 0);
 
-  String ha1 = (passwordIsHash) ? String(password) : stringMD5(myUsername + ":" + myRealm + ":" + String(password));
-  String ha2 = String(method) + ":" + myUri;
-  String response = ha1 + ":" + myNonce + ":" + myNc + ":" + myCnonce + ":" + myQop + ":" + stringMD5(ha2);
+  String_ colon(":");
+  String_ ha1 = (passwordIsHash) ? String_(password) : stringMD5(myUsername + colon + myRealm + colon + String_(password));
+  String_ ha2 = String_(method) + colon + myUri;
+  String_ response = ha1 + colon + myNonce + colon + myNc + colon + myCnonce + colon + myQop + colon + stringMD5(ha2);
 
   if(myResponse.equals(stringMD5(response))){
     //os_printf("AUTH SUCCESS\n");

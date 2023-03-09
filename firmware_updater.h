@@ -1,7 +1,8 @@
 #ifdef ESP32
 
 #pragma once
-#include <Arduino.h>
+#include <stdint.h>
+#include <HAL_system/HAL_system_singleton.h>
 
 #define WIFI_NAME "Upgrade Energy Tech"
 #define WIFI_PASSWORD "123456789"
@@ -25,7 +26,8 @@ private:
     bool should_stop_only_after_client_disconnection = false;
     bool was_there_any_client = false;
     
-    uint32_t ms_since_last_check = millis();
+    HAL_system_api* device = HAL_system_singleton::get_HAL_system_instance();
+    uint32_t ms_since_last_check = device->millisecs_since_init();
     int seconds_until_deactivation = 0;
 
     bool is_active = false;

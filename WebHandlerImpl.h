@@ -21,7 +21,7 @@
 #ifndef ASYNCWEBSERVERHANDLERIMPL_H_
 #define ASYNCWEBSERVERHANDLERIMPL_H_
 
-#include <string>
+#include "String_.h"
 #ifdef ASYNCWEBSERVER_REGEX
 #include <regex>
 #endif
@@ -34,15 +34,15 @@ class AsyncStaticWebHandler: public AsyncWebHandler {
    using FS = fs::FS;
   private:
     bool _getFile(AsyncWebServerRequest *request);
-    bool _fileExists(AsyncWebServerRequest *request, const String& path);
+    bool _fileExists(AsyncWebServerRequest *request, const String_& path);
     uint8_t _countBits(const uint8_t value) const;
   protected:
     FS _fs;
-    String _uri;
-    String _path;
-    String _default_file;
-    String _cache_control;
-    String _last_modified;
+    String_ _uri;
+    String_ _path;
+    String_ _default_file;
+    String_ _cache_control;
+    String_ _last_modified;
     AwsTemplateProcessor _callback;
     bool _isDir;
     bool _gzipFirst;
@@ -66,7 +66,7 @@ class AsyncStaticWebHandler: public AsyncWebHandler {
 class AsyncCallbackWebHandler: public AsyncWebHandler {
   private:
   protected:
-    String _uri;
+    String_ _uri;
     WebRequestMethodComposite _method;
     ArRequestHandlerFunction _onRequest;
     ArUploadHandlerFunction _onUpload;
@@ -74,7 +74,7 @@ class AsyncCallbackWebHandler: public AsyncWebHandler {
     bool _isRegex;
   public:
     AsyncCallbackWebHandler() : _uri(), _method(HTTP_ANY), _onRequest(NULL), _onUpload(NULL), _onBody(NULL), _isRegex(false) {}
-    void setUri(const String& uri){ 
+    void setUri(const String_& uri){ 
       _uri = uri; 
       _isRegex = uri.startsWith("^") && uri.endsWith("$");
     }
@@ -106,14 +106,14 @@ class AsyncCallbackWebHandler: public AsyncWebHandler {
       } else 
 #endif
       if (_uri.length() && _uri.startsWith("/*.")) {
-         String uriTemplate = String (_uri);
+         String_ uriTemplate = String_ (_uri);
          uriTemplate = uriTemplate.substring(uriTemplate.lastIndexOf("."));
          if (!request->url().endsWith(uriTemplate))
            return false;
       }
       else
       if (_uri.length() && _uri.endsWith("*")) {
-        String uriTemplate = String(_uri);
+        String_ uriTemplate = String_(_uri);
 	uriTemplate = uriTemplate.substring(0, uriTemplate.length() - 1);
         if (!request->url().startsWith(uriTemplate))
           return false;
@@ -133,7 +133,7 @@ class AsyncCallbackWebHandler: public AsyncWebHandler {
       else
         request->send(500);
     }
-    virtual void handleUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) override final {
+    virtual void handleUpload(AsyncWebServerRequest *request, const String_& filename, size_t index, uint8_t *data, size_t len, bool final) override final {
       if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
         return request->requestAuthentication();
       if(_onUpload)

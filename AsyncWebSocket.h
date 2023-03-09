@@ -21,7 +21,7 @@
 #ifndef ASYNCWEBSOCKET_H_
 #define ASYNCWEBSOCKET_H_
 
-#include <Arduino.h>
+#include <freertos/FreeRTOS.h>
 #if defined(ESP32) || defined(LIBRETUYA)
 #include "AsyncTCP.h"
 #define WS_MAX_QUEUED_MESSAGES 32
@@ -214,7 +214,7 @@ class AsyncWebSocketClient {
     void text(const char * message);
     void text(uint8_t * message, size_t len);
     void text(char * message);
-    void text(const String &message);
+    void text(const String_ &message);
     void text(const __FlashStringHelper *data);
     void text(AsyncWebSocketMessageBuffer *buffer); 
 
@@ -222,7 +222,7 @@ class AsyncWebSocketClient {
     void binary(const char * message);
     void binary(uint8_t * message, size_t len);
     void binary(char * message);
-    void binary(const String &message);
+    void binary(const String_ &message);
     void binary(const __FlashStringHelper *data, size_t len);
     void binary(AsyncWebSocketMessageBuffer *buffer); 
 
@@ -244,7 +244,7 @@ class AsyncWebSocket: public AsyncWebHandler {
   public:
     typedef LinkedList<AsyncWebSocketClient *> AsyncWebSocketClientLinkedList;
   private:
-    String _url;
+    String_ _url;
     AsyncWebSocketClientLinkedList _clients;
     uint32_t _cNextId;
     AwsEventHandler _eventHandler;
@@ -252,7 +252,7 @@ class AsyncWebSocket: public AsyncWebHandler {
     AsyncWebLock _lock;
 
   public:
-    AsyncWebSocket(const String& url);
+    AsyncWebSocket(const String_& url);
     ~AsyncWebSocket();
     const char * url() const { return _url.c_str(); }
     void enable(bool e){ _enabled = e; }
@@ -275,14 +275,14 @@ class AsyncWebSocket: public AsyncWebHandler {
     void text(uint32_t id, const char * message);
     void text(uint32_t id, uint8_t * message, size_t len);
     void text(uint32_t id, char * message);
-    void text(uint32_t id, const String &message);
+    void text(uint32_t id, const String_ &message);
     void text(uint32_t id, const __FlashStringHelper *message);
 
     void textAll(const char * message, size_t len);
     void textAll(const char * message);
     void textAll(uint8_t * message, size_t len);
     void textAll(char * message);
-    void textAll(const String &message);
+    void textAll(const String_ &message);
     void textAll(const __FlashStringHelper *message); //  need to convert
     void textAll(AsyncWebSocketMessageBuffer * buffer); 
 
@@ -290,14 +290,14 @@ class AsyncWebSocket: public AsyncWebHandler {
     void binary(uint32_t id, const char * message);
     void binary(uint32_t id, uint8_t * message, size_t len);
     void binary(uint32_t id, char * message);
-    void binary(uint32_t id, const String &message);
+    void binary(uint32_t id, const String_ &message);
     void binary(uint32_t id, const __FlashStringHelper *message, size_t len);
 
     void binaryAll(const char * message, size_t len);
     void binaryAll(const char * message);
     void binaryAll(uint8_t * message, size_t len);
     void binaryAll(char * message);
-    void binaryAll(const String &message);
+    void binaryAll(const String_ &message);
     void binaryAll(const __FlashStringHelper *message, size_t len);
     void binaryAll(AsyncWebSocketMessageBuffer * buffer); 
 
@@ -337,10 +337,10 @@ class AsyncWebSocket: public AsyncWebHandler {
 //WebServer response to authenticate the socket and detach the tcp client from the web server request
 class AsyncWebSocketResponse: public AsyncWebServerResponse {
   private:
-    String _content;
+    String_ _content;
     AsyncWebSocket *_server;
   public:
-    AsyncWebSocketResponse(const String& key, AsyncWebSocket *server);
+    AsyncWebSocketResponse(const String_& key, AsyncWebSocket *server);
     void _respond(AsyncWebServerRequest *request);
     size_t _ack(AsyncWebServerRequest *request, size_t len, uint32_t time);
     bool _sourceValid() const { return true; }

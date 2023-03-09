@@ -1,9 +1,7 @@
-#ifdef ESP32
+// #ifdef ESP32
 
 #include "firmware_updater.h"
 #include <esp_wifi.h>
-
-#include <Arduino.h>
 
 #include <WiFi.h>
 #include <WiFiAP.h>

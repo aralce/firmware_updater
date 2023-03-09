@@ -48,17 +48,17 @@ AsyncStaticWebHandler& AsyncStaticWebHandler::setIsDir(bool isDir){
 }
 
 AsyncStaticWebHandler& AsyncStaticWebHandler::setDefaultFile(const char* filename){
-  _default_file = String(filename);
+  _default_file = String_(filename);
   return *this;
 }
 
 AsyncStaticWebHandler& AsyncStaticWebHandler::setCacheControl(const char* cache_control){
-  _cache_control = String(cache_control);
+  _cache_control = String_(cache_control);
   return *this;
 }
 
 AsyncStaticWebHandler& AsyncStaticWebHandler::setLastModified(const char* last_modified){
-  _last_modified = String(last_modified);
+  _last_modified = String_(last_modified);
   return *this;
 }
 
@@ -105,7 +105,7 @@ bool AsyncStaticWebHandler::canHandle(AsyncWebServerRequest *request){
 bool AsyncStaticWebHandler::_getFile(AsyncWebServerRequest *request)
 {
   // Remove the found uri
-  String path = request->url().substring(_uri.length());
+  String_ path = request->url().substring(_uri.length());
 
   // We can skip the file check and look for default if request is to the root of a directory or that request path ends with '/'
   bool canSkipFileCheck = (_isDir && path.length() == 0) || (path.length() && path[path.length()-1] == '/');
@@ -134,12 +134,12 @@ bool AsyncStaticWebHandler::_getFile(AsyncWebServerRequest *request)
 #define FILE_IS_REAL(f) (f == true)
 #endif
 
-bool AsyncStaticWebHandler::_fileExists(AsyncWebServerRequest *request, const String& path)
+bool AsyncStaticWebHandler::_fileExists(AsyncWebServerRequest *request, const String_& path)
 {
   bool fileFound = false;
   bool gzipFound = false;
 
-  String gzip = path + ".gz";
+  String_ gzip = path + ".gz";
 
   if (_gzipFirst) {
     request->_tempFile = _fs.open(gzip, "r");
@@ -187,14 +187,14 @@ uint8_t AsyncStaticWebHandler::_countBits(const uint8_t value) const
 void AsyncStaticWebHandler::handleRequest(AsyncWebServerRequest *request)
 {
   // Get the filename from request->_tempObject and free it
-  String filename = String((char*)request->_tempObject);
+  String_ filename = String_((char*)request->_tempObject);
   free(request->_tempObject);
   request->_tempObject = NULL;
   if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
       return request->requestAuthentication();
 
   if (request->_tempFile == true) {
-    String etag = String(request->_tempFile.size());
+    String_ etag = String_(request->_tempFile.size());
     if (_last_modified.length() && _last_modified == request->header("If-Modified-Since")) {
       request->_tempFile.close();
       request->send(304); // Not modified
@@ -205,7 +205,7 @@ void AsyncStaticWebHandler::handleRequest(AsyncWebServerRequest *request)
       response->addHeader("ETag", etag);
       request->send(response);
     } else {
-      AsyncWebServerResponse * response = new AsyncFileResponse(request->_tempFile, filename, String(), false, _callback);
+      AsyncWebServerResponse * response = new AsyncFileResponse(request->_tempFile, filename, String_(), false, _callback);
       if (_last_modified.length())
         response->addHeader("Last-Modified", _last_modified);
       if (_cache_control.length()){

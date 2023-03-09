@@ -18,7 +18,6 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "Arduino.h"
 #include "AsyncWebSocket.h"
 
 #include <libb64/cencode.h>
@@ -770,7 +769,7 @@ void AsyncWebSocketClient::text(uint8_t * message, size_t len){
 void AsyncWebSocketClient::text(char * message){
   text(message, strlen(message));
 }
-void AsyncWebSocketClient::text(const String &message){
+void AsyncWebSocketClient::text(const String_ &message){
   text(message.c_str(), message.length());
 }
 void AsyncWebSocketClient::text(const __FlashStringHelper *data){
@@ -806,7 +805,7 @@ void AsyncWebSocketClient::binary(uint8_t * message, size_t len){
 void AsyncWebSocketClient::binary(char * message){
   binary(message, strlen(message));
 }
-void AsyncWebSocketClient::binary(const String &message){
+void AsyncWebSocketClient::binary(const String_ &message){
   binary(message.c_str(), message.length());
 }
 void AsyncWebSocketClient::binary(const __FlashStringHelper *data, size_t len){
@@ -845,7 +844,7 @@ uint16_t AsyncWebSocketClient::remotePort() {
  * Async Web Socket - Each separate socket location
  */
 
-AsyncWebSocket::AsyncWebSocket(const String& url)
+AsyncWebSocket::AsyncWebSocket(const String_& url)
   :_url(url)
   ,_clients(LinkedList<AsyncWebSocketClient *>([](AsyncWebSocketClient *c){ delete c; }))
   ,_cNextId(1)
@@ -1081,7 +1080,7 @@ void AsyncWebSocket::text(uint32_t id, uint8_t * message, size_t len){
 void AsyncWebSocket::text(uint32_t id, char * message){
   text(id, message, strlen(message));
 }
-void AsyncWebSocket::text(uint32_t id, const String &message){
+void AsyncWebSocket::text(uint32_t id, const String_ &message){
   text(id, message.c_str(), message.length());
 }
 void AsyncWebSocket::text(uint32_t id, const __FlashStringHelper *message){
@@ -1098,7 +1097,7 @@ void AsyncWebSocket::textAll(uint8_t * message, size_t len){
 void AsyncWebSocket::textAll(char * message){
   textAll(message, strlen(message));
 }
-void AsyncWebSocket::textAll(const String &message){
+void AsyncWebSocket::textAll(const String_ &message){
   textAll(message.c_str(), message.length());
 }
 void AsyncWebSocket::textAll(const __FlashStringHelper *message){
@@ -1116,7 +1115,7 @@ void AsyncWebSocket::binary(uint32_t id, uint8_t * message, size_t len){
 void AsyncWebSocket::binary(uint32_t id, char * message){
   binary(id, message, strlen(message));
 }
-void AsyncWebSocket::binary(uint32_t id, const String &message){
+void AsyncWebSocket::binary(uint32_t id, const String_ &message){
   binary(id, message.c_str(), message.length());
 }
 void AsyncWebSocket::binary(uint32_t id, const __FlashStringHelper *message, size_t len){
@@ -1133,7 +1132,7 @@ void AsyncWebSocket::binaryAll(uint8_t * message, size_t len){
 void AsyncWebSocket::binaryAll(char * message){
   binaryAll(message, strlen(message));
 }
-void AsyncWebSocket::binaryAll(const String &message){
+void AsyncWebSocket::binaryAll(const String_ &message){
   binaryAll(message.c_str(), message.length());
 }
 void AsyncWebSocket::binaryAll(const __FlashStringHelper *message, size_t len){
@@ -1235,7 +1234,7 @@ AsyncWebSocket::AsyncWebSocketClientLinkedList AsyncWebSocket::getClients() cons
  * Authentication code from https://github.com/Links2004/arduinoWebSockets/blob/master/src/WebSockets.cpp#L480
  */
 
-AsyncWebSocketResponse::AsyncWebSocketResponse(const String& key, AsyncWebSocket *server){
+AsyncWebSocketResponse::AsyncWebSocketResponse(const String_& key, AsyncWebSocket *server){
   _server = server;
   _code = 101;
   _sendContentLength = false;
@@ -1254,7 +1253,7 @@ AsyncWebSocketResponse::AsyncWebSocketResponse(const String& key, AsyncWebSocket
 #ifdef ESP8266
   sha1(key + WS_STR_UUID, hash);
 #else
-  (String&)key += WS_STR_UUID;
+  (String_&)key += WS_STR_UUID;
   mbedtls_sha1_context ctx;
   mbedtls_sha1_init(&ctx);
 #if MBEDTLS_VERSION_NUMBER >= 0x02070000 && MBEDTLS_VERSION_NUMBER < 0x03000000
@@ -1284,7 +1283,7 @@ void AsyncWebSocketResponse::_respond(AsyncWebServerRequest *request){
     request->client()->close(true);
     return;
   }
-  String out = _assembleHead(request->version());
+  String_ out = _assembleHead(request->version());
   request->client()->write(out.c_str(), _headLength);
   _state = RESPONSE_WAIT_ACK;
 }

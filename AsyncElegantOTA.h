@@ -1,9 +1,6 @@
 #ifndef AsyncElegantOTA_h
 #define AsyncElegantOTA_h
 
-#warning AsyncElegantOTA.loop(); is deprecated, please remove it from loop() if defined. This function will be removed in a future release.
-
-#include "Arduino.h"
 #include "stdlib_noniso.h"
 
 #if defined(ESP8266)
@@ -84,7 +81,7 @@ class AsyncElegantOtaClass{
                 response->addHeader("Access-Control-Allow-Origin", "*");
                 request->send(response);
                 restart();
-            }, [&](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+            }, [&](AsyncWebServerRequest *request, String_ filename, size_t index, uint8_t *data, size_t len, bool final) {
                 //Upload handler chunks in data
                 if(_authRequired){
                     if(!request->authenticate(_username.c_str(), _password.c_str())){
@@ -134,10 +131,6 @@ class AsyncElegantOtaClass{
             });
         }
 
-        // deprecated, keeping for backward compatibility
-        void loop() {
-        }
-        
         void restart() {
             yield();
             delay(1000);
@@ -148,20 +141,20 @@ class AsyncElegantOtaClass{
     private:
         AsyncWebServer *_server;
 
-        String getID(){
-            String id = "";
+        String_ getID(){
+            String_ id = "";
             #if defined(ESP8266)
-                id = String(ESP.getChipId());
+                id = String_(ESP.getChipId());
             #elif defined(ESP32)
-                id = String((uint32_t)ESP.getEfuseMac(), HEX);
+                id = String_((uint32_t)ESP.getEfuseMac(), HEX);
             #endif
             id.toUpperCase();
             return id;
         }
 
-        String _id = getID();
-        String _username = "";
-        String _password = "";
+        String_ _id = getID();
+        String_ _username = "";
+        String_ _password = "";
         bool _authRequired = false;
 
 };

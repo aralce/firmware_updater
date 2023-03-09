@@ -20,8 +20,7 @@
 #ifndef ASYNCEVENTSOURCE_H_
 #define ASYNCEVENTSOURCE_H_
 
-#include <Arduino.h>
-#include <Arduino.h>
+#include <freertos/FreeRTOS.h>
 #if defined(ESP32) || defined(LIBRETUYA)
 #include "AsyncTCP.h"
 #else
@@ -101,11 +100,11 @@ class AsyncEventSourceClient {
 
 class AsyncEventSource: public AsyncWebHandler {
   private:
-    String _url;
+    String_ _url;
     LinkedList<AsyncEventSourceClient *> _clients;
     ArEventHandlerFunction _connectcb;
   public:
-    AsyncEventSource(const String& url);
+    AsyncEventSource(const String_& url);
     ~AsyncEventSource();
 
     const char * url() const { return _url.c_str(); }
@@ -124,7 +123,7 @@ class AsyncEventSource: public AsyncWebHandler {
 
 class AsyncEventSourceResponse: public AsyncWebServerResponse {
   private:
-    String _content;
+    String_ _content;
     AsyncEventSource *_server;
   public:
     AsyncEventSourceResponse(AsyncEventSource *server);
