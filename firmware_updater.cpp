@@ -1,5 +1,3 @@
-#ifdef ESP32
-
 #include "firmware_updater.h"
 #include <esp_wifi.h>
 
@@ -126,5 +124,3 @@ void Firmware_updater::stop_firmware_updater() {
         Serial.println("Server deactivated");
     }
 }
-
-#endif // ESP32

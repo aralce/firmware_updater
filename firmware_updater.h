@@ -1,5 +1,3 @@
-#ifdef ESP32
-
 #pragma once
 #include <stdint.h>
 #include <HAL_system/HAL_system_singleton.h>
@@ -36,5 +34,3 @@ private:
     bool should_stop_firmware_updater_by_time();
     void stop_firmware_updater();
 };
-
-#endif // ESP32

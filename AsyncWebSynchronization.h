@@ -5,7 +5,7 @@
 
 #include "ESPAsyncWebServer.h"
 
-#if defined(ESP32) || (defined(LIBRETUYA) && LT_HAS_FREERTOS)
+// #if defined(ESP32) || (defined(LIBRETUYA) && LT_HAS_FREERTOS)
 
 // This is the ESP32 version of the Sync Lock, using the FreeRTOS Semaphore
 class AsyncWebLock
@@ -41,27 +41,27 @@ public:
   }
 };
 
-#else
+// #else
 
-// This is the 8266 version of the Sync Lock which is currently unimplemented
-class AsyncWebLock
-{
+// // This is the 8266 version of the Sync Lock which is currently unimplemented
+// class AsyncWebLock
+// {
 
-public:
-  AsyncWebLock() {
-  }
+// public:
+//   AsyncWebLock() {
+//   }
 
-  ~AsyncWebLock() {
-  }
+//   ~AsyncWebLock() {
+//   }
 
-  bool lock() const {
-    return false;
-  }
+//   bool lock() const {
+//     return false;
+//   }
 
-  void unlock() const {
-  }
-};
-#endif
+//   void unlock() const {
+//   }
+// };
+// #endif
 
 class AsyncWebLockGuard
 {
@@ -84,4 +84,4 @@ public:
   }
 };
 
-#endif // ASYNCWEBSYNCHRONIZATION_H_
+#endif // dASYNCWEBSYNCHRONIZATION_H_

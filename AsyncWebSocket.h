@@ -22,13 +22,13 @@
 #define ASYNCWEBSOCKET_H_
 
 #include <freertos/FreeRTOS.h>
-#if defined(ESP32) || defined(LIBRETUYA)
+// #if defined(ESP32) || defined(LIBRETUYA)
 #include "AsyncTCP.h"
 #define WS_MAX_QUEUED_MESSAGES 32
-#else
-#include <ESPAsyncTCP.h>
-#define WS_MAX_QUEUED_MESSAGES 8
-#endif
+// #else
+// #include <ESPAsyncTCP.h>
+// #define WS_MAX_QUEUED_MESSAGES 8
+// #endif
 #include "ESPAsyncWebServer.h"
 
 #include "AsyncWebSynchronization.h"
@@ -40,11 +40,11 @@
 #endif
 #endif
 
-#if defined(ESP32) || defined(LIBRETUYA)
+// #if defined(ESP32) || defined(LIBRETUYA)
 #define DEFAULT_MAX_WS_CLIENTS 8
-#else
-#define DEFAULT_MAX_WS_CLIENTS 4
-#endif
+// #else
+// #define DEFAULT_MAX_WS_CLIENTS 4
+// #endif
 
 class AsyncWebSocket;
 class AsyncWebSocketResponse;
