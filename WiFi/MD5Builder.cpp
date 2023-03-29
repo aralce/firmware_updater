@@ -19,6 +19,8 @@
 // #include <Arduino.h>
 #include <MD5Builder.h>
 
+#if defined(CUSTOM_MD5_BUILDER_FOR_PORT_TO_ESP_IDF)
+
 static uint8_t hex_char_to_byte(uint8_t c)
 {
     return  (c >= 'a' && c <= 'f') ? (c - ((uint8_t)'a' - 0xa)) :
@@ -115,3 +117,5 @@ String MD5Builder::toString(void)
     getChars(out);
     return String(out);
 }
+
+#endif //CUSTOM_MD5_BUILDER_FOR_PORT_TO_ESP_IDF

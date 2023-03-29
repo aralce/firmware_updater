@@ -18,6 +18,7 @@
 */
 #ifndef __ESP8266_MD5_BUILDER__
 #define __ESP8266_MD5_BUILDER__
+#define CUSTOM_MD5_BUILDER_FOR_PORT_TO_ESP_IDF
 
 #include <WString.h>
 #include <Stream.h>
