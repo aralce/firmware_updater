@@ -16,10 +16,11 @@
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#include <IPAddress.h>
 #if defined(CUSTOM_IP_ADDRESS_FOR_PORT_TO_ESP_IDF)
 
-#include <Arduino.h>
-#include <IPAddress.h>
+// #include <Arduino.h>
+#include <stdio.h>
 #include <Print.h>
 
 IPAddress::IPAddress()
