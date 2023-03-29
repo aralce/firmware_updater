@@ -2,6 +2,13 @@
     "name": "Firmware_updater",
     "version": "1.0.0",
     "author": "Ariel Cerfoglia",
+    "platforms": [
+        "espressif32"
+      ],
+      "frameworks": [
+        "arduino",
+        "espidf"
+      ],
     "build": {
         "inlcudeDir": ".",
         "srcDir": ".",

@@ -36,7 +36,7 @@ extern "C" {
 #include <esp_err.h>
 #include <esp_wifi.h>
 #include <esp_event.h>
-#include <esp32-hal.h>
+// #include <esp32-hal.h>
 #include <lwip/ip_addr.h>
 #include "lwip/err.h"
 #include "lwip/dns.h"
@@ -45,6 +45,14 @@ extern "C" {
 #include "esp_wpa2.h"
 }
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/event_groups.h>
+#include <esp_log.h>
+#include <HAL_system/HAL_system_singleton.h>
+
+static HAL_system_api* device = HAL_system_singleton::get_HAL_system_instance();
+
+const char WIFI_STA_TAG[9] = "WiFi STA";
 // -----------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------- Private functions ------------------------------------------------
 // -----------------------------------------------------------------------------------------------------------------------
@@ -127,7 +135,8 @@ void WiFiSTAClass::_setStatus(wl_status_t status)
     if(!_sta_status_group){
         _sta_status_group = xEventGroupCreate();
         if(!_sta_status_group){
-            log_e("STA Status Group Create Failed!");
+            ESP_LOGE(WIFI_STA_TAG, "STA Status Group Create Failed!");
+            // log_e("STA Status Group Create Failed!");
             _sta_status = status;
             return;
         }
@@ -168,27 +177,32 @@ wl_status_t WiFiSTAClass::status()
 wl_status_t WiFiSTAClass::begin(const char* wpa2_ssid, wpa2_auth_method_t method, const char* wpa2_identity, const char* wpa2_username, const char *wpa2_password, const char* ca_pem, const char* client_crt, const char* client_key, int32_t channel, const uint8_t* bssid, bool connect)
 {
     if(!WiFi.enableSTA(true)) {
-        log_e("STA enable failed!");
+        ESP_LOGE(WIFI_STA_TAG, "STA enable failed!");
+        // log_e("STA enable failed!");
         return WL_CONNECT_FAILED;
     }
 
     if(!wpa2_ssid || *wpa2_ssid == 0x00 || strlen(wpa2_ssid) > 32) {
-        log_e("SSID too long or missing!");
+        ESP_LOGE(WIFI_STA_TAG, "SSID too long or missing!");
+        // log_e("SSID too long or missing!");
         return WL_CONNECT_FAILED;
     }
 
     if(wpa2_identity && strlen(wpa2_identity) > 64) {
-        log_e("identity too long!");
+        ESP_LOGE(WIFI_STA_TAG, "identity too long!");
+        // log_e("identity too long!");
         return WL_CONNECT_FAILED;
     }
 
     if(wpa2_username && strlen(wpa2_username) > 64) {
-        log_e("username too long!");
+        ESP_LOGE(WIFI_STA_TAG, "username too long!");
+        // log_e("username too long!");
         return WL_CONNECT_FAILED;
     }
 
     if(wpa2_password && strlen(wpa2_password) > 64) {
-        log_e("password too long!");
+        ESP_LOGE(WIFI_STA_TAG, "password too long!");
+        // log_e("password too long!");
     }
 
     if(ca_pem) {
@@ -224,17 +238,20 @@ wl_status_t WiFiSTAClass::begin(const char* ssid, const char *passphrase, int32_
 {
 
     if(!WiFi.enableSTA(true)) {
-        log_e("STA enable failed!");
+        ESP_LOGE(WIFI_STA_TAG, "STA enable failed!");
+        // log_e("STA enable failed!");
         return WL_CONNECT_FAILED;
     }
 
     if(!ssid || *ssid == 0x00 || strlen(ssid) > 32) {
-        log_e("SSID too long or missing!");
+        ESP_LOGE(WIFI_STA_TAG, "SSID too long or missing!");
+        // log_e("SSID too long or missing!");
         return WL_CONNECT_FAILED;
     }
 
     if(passphrase && strlen(passphrase) > 64) {
-        log_e("passphrase too long!");
+        ESP_LOGE(WIFI_STA_TAG, "passphrase too long!");
+        // log_e("passphrase too long!");
         return WL_CONNECT_FAILED;
     }
 
@@ -245,24 +262,28 @@ wl_status_t WiFiSTAClass::begin(const char* ssid, const char *passphrase, int32_
 
     wifi_config_t current_conf;
     if(esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &current_conf) != ESP_OK){
-        log_e("get current config failed!");
+        ESP_LOGE(WIFI_STA_TAG, "get current config failed!");
+        // log_e("get current config failed!");
         return WL_CONNECT_FAILED;
     }
     if(!sta_config_equal(current_conf, conf)) {
         if(esp_wifi_disconnect()){
-            log_e("disconnect failed!");
+            ESP_LOGE(WIFI_STA_TAG, "disconnect failed!");
+            // log_e("disconnect failed!");
             return WL_CONNECT_FAILED;
         }
 
         if(esp_wifi_set_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf) != ESP_OK){
-            log_e("set config failed!");
+            ESP_LOGE(WIFI_STA_TAG, "set config failed!");
+            // log_e("set config failed!");
             return WL_CONNECT_FAILED;
         }
     } else if(status() == WL_CONNECTED){
         return WL_CONNECTED;
     } else {
         if(esp_wifi_set_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf) != ESP_OK){
-            log_e("set config failed!");
+            ESP_LOGE(WIFI_STA_TAG, "set config failed");
+            // log_e("set config failed!");
             return WL_CONNECT_FAILED;
         }
     }
@@ -275,7 +296,8 @@ wl_status_t WiFiSTAClass::begin(const char* ssid, const char *passphrase, int32_
 
     if(connect){
     	if(esp_wifi_connect() != ESP_OK) {
-			log_e("connect failed!");
+			ESP_LOGE(WIFI_STA_TAG, "connect failed!");
+            // log_e("connect failed!");
 			return WL_CONNECT_FAILED;
 		}
     }
@@ -296,25 +318,29 @@ wl_status_t WiFiSTAClass::begin()
 {
 
     if(!WiFi.enableSTA(true)) {
-        log_e("STA enable failed!");
+        ESP_LOGE(WIFI_STA_TAG, "STA enable failed!");
+        // log_e("STA enable failed!");
         return WL_CONNECT_FAILED;
     }
 
     wifi_config_t current_conf;
     if(esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &current_conf) != ESP_OK || esp_wifi_set_config((wifi_interface_t)ESP_IF_WIFI_STA, &current_conf) != ESP_OK) {
-        log_e("config failed");
+        ESP_LOGE(WIFI_STA_TAG, "config failed");
+        // log_e("config failed");
         return WL_CONNECT_FAILED;
     }
 
     if(!_useStaticIp && set_esp_interface_ip(ESP_IF_WIFI_STA) != ESP_OK) {
-        log_e("set ip failed!");
+        ESP_LOGE(WIFI_STA_TAG, "set ip failed!");
+        // log_e("set ip failed!");
         return WL_CONNECT_FAILED;
     }
 
     if(status() != WL_CONNECTED){
     	esp_err_t err = esp_wifi_connect();
     	if(err){
-            log_e("connect failed! 0x%x", err);
+            ESP_LOGE(WIFI_STA_TAG, "connect failed! 0x%x", err);
+            // log_e("connect failed! 0x%x", err);
             return WL_CONNECT_FAILED;
     	}
     }
@@ -350,11 +376,13 @@ bool WiFiSTAClass::disconnect(bool wifioff, bool eraseap)
     if(WiFi.getMode() & WIFI_MODE_STA){
         if(eraseap){
             if(esp_wifi_set_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf)){
-                log_e("clear config failed!");
+                ESP_LOGE(WIFI_STA_TAG, "clear config failed!");
+                // log_e("clear config failed!");
             }
         }
         if(esp_wifi_disconnect()){
-            log_e("disconnect failed!");
+            ESP_LOGE(WIFI_STA_TAG, "disconnect failed!");
+            // log_e("disconnect failed!");
             return false;
         }
         if(wifioff) {
@@ -483,9 +511,11 @@ uint8_t WiFiSTAClass::waitForConnectResult(unsigned long timeoutLength)
     if((WiFiGenericClass::getMode() & WIFI_MODE_STA) == 0) {
         return WL_DISCONNECTED;
     }
-    unsigned long start = millis();
-    while((!status() || status() >= WL_DISCONNECTED) && (millis() - start) < timeoutLength) {
-        delay(100);
+    // unsigned long start = millis();
+    unsigned long start = device->millisecs_since_init();
+    while((!status() || status() >= WL_DISCONNECTED) && (device->millisecs_since_init() - start) < timeoutLength) {
+        // delay(100);
+        device->wait_ms_blocked(100);
     }
     return status();
 }
@@ -501,7 +531,8 @@ IPAddress WiFiSTAClass::localIP()
     }
 	esp_netif_ip_info_t ip;
     if(esp_netif_get_ip_info(get_esp_interface_netif(ESP_IF_WIFI_STA), &ip) != ESP_OK){
-    	log_e("Netif Get IP Failed!");
+    	ESP_LOGE(WIFI_STA_TAG, "Netif Get IP Failed!");
+        // log_e("Netif Get IP Failed!");
     	return IPAddress();
     }
     return IPAddress(ip.ip.addr);
@@ -553,7 +584,8 @@ IPAddress WiFiSTAClass::subnetMask()
     }
 	esp_netif_ip_info_t ip;
     if(esp_netif_get_ip_info(get_esp_interface_netif(ESP_IF_WIFI_STA), &ip) != ESP_OK){
-    	log_e("Netif Get IP Failed!");
+    	ESP_LOGE(WIFI_STA_TAG, "Netif Get IP Failed!");
+        // log_e("Netif Get IP Failed!");
     	return IPAddress();
     }
     return IPAddress(ip.netmask.addr);
@@ -570,7 +602,8 @@ IPAddress WiFiSTAClass::gatewayIP()
     }
 	esp_netif_ip_info_t ip;
     if(esp_netif_get_ip_info(get_esp_interface_netif(ESP_IF_WIFI_STA), &ip) != ESP_OK){
-    	log_e("Netif Get IP Failed!");
+    	ESP_LOGE(WIFI_STA_TAG, "Netif Get IP Failed!");
+        // log_e("Netif Get IP Failed!");
     	return IPAddress();
     }
     return IPAddress(ip.gw.addr);
@@ -601,7 +634,8 @@ IPAddress WiFiSTAClass::broadcastIP()
     }
 	esp_netif_ip_info_t ip;
     if(esp_netif_get_ip_info(get_esp_interface_netif(ESP_IF_WIFI_STA), &ip) != ESP_OK){
-    	log_e("Netif Get IP Failed!");
+    	ESP_LOGE(WIFI_STA_TAG, "Netif Get IP Failed!");
+        // log_e("Netif Get IP Failed!");
     	return IPAddress();
     }
     return WiFiGenericClass::calculateBroadcast(IPAddress(ip.gw.addr), IPAddress(ip.netmask.addr));
@@ -618,7 +652,8 @@ IPAddress WiFiSTAClass::networkID()
     }
 	esp_netif_ip_info_t ip;
     if(esp_netif_get_ip_info(get_esp_interface_netif(ESP_IF_WIFI_STA), &ip) != ESP_OK){
-    	log_e("Netif Get IP Failed!");
+    	ESP_LOGE(WIFI_STA_TAG, "Netif Get IP Failed!");
+        // log_e("Netif Get IP Failed!");
     	return IPAddress();
     }
     return WiFiGenericClass::calculateNetworkID(IPAddress(ip.gw.addr), IPAddress(ip.netmask.addr));
@@ -635,7 +670,8 @@ uint8_t WiFiSTAClass::subnetCIDR()
     }
 	esp_netif_ip_info_t ip;
     if(esp_netif_get_ip_info(get_esp_interface_netif(ESP_IF_WIFI_STA), &ip) != ESP_OK){
-    	log_e("Netif Get IP Failed!");
+    	ESP_LOGE(WIFI_STA_TAG, "Netif Get IP Failed!");
+        // log_e("Netif Get IP Failed!");
     	return IPAddress();
     }
     return WiFiGenericClass::calculateSubnetCIDR(IPAddress(ip.netmask.addr));
@@ -780,12 +816,14 @@ bool WiFiSTAClass::beginSmartConfig(smartconfig_type_t type, char* crypt_key) {
 
     err = esp_smartconfig_set_type(type);
     if (err != ESP_OK) {
-    	log_e("SmartConfig Set Type Failed!");
+    	ESP_LOGE(WIFI_STA_TAG, "SmartConfig Set Type Failed!");
+        // log_e("SmartConfig Set Type Failed!");
         return false;
     }
     err = esp_smartconfig_start(&conf);
     if (err != ESP_OK) {
-    	log_e("SmartConfig Start Failed!");
+    	ESP_LOGE(WIFI_STA_TAG, "SmartConfig Start Failed!");
+        // log_e("SmartConfig Start Failed!");
         return false;
     }
     _smartConfigStarted = true;

@@ -728,37 +728,37 @@ size_t AsyncWebSocketClient::printf(const char *format, ...) {
   return len;
 }
 
-#ifndef ESP32
-size_t AsyncWebSocketClient::printf_P(PGM_P formatP, ...) {
-  va_list arg;
-  va_start(arg, formatP);
-  char* temp = new char[MAX_PRINTF_LEN];
-  if(!temp){
-    va_end(arg);
-    return 0;
-  }
-  char* buffer = temp;
-  size_t len = vsnprintf_P(temp, MAX_PRINTF_LEN, formatP, arg);
-  va_end(arg);
+// #ifndef ESP32
+// size_t AsyncWebSocketClient::printf_P(PGM_P formatP, ...) {
+//   va_list arg;
+//   va_start(arg, formatP);
+//   char* temp = new char[MAX_PRINTF_LEN];
+//   if(!temp){
+//     va_end(arg);
+//     return 0;
+//   }
+//   char* buffer = temp;
+//   size_t len = vsnprintf_P(temp, MAX_PRINTF_LEN, formatP, arg);
+//   va_end(arg);
 
-  if (len > (MAX_PRINTF_LEN - 1)) {
-    buffer = new char[len + 1];
-    if (!buffer) {
-   	  delete[] temp;
-      return 0;
-    }
-    va_start(arg, formatP);
-    vsnprintf_P(buffer, len + 1, formatP, arg);
-    va_end(arg);
-  }
-  text(buffer, len);
-  if (buffer != temp) {
-    delete[] buffer;
-  }
-  delete[] temp;
-  return len;
-}
-#endif
+//   if (len > (MAX_PRINTF_LEN - 1)) {
+//     buffer = new char[len + 1];
+//     if (!buffer) {
+//    	  delete[] temp;
+//       return 0;
+//     }
+//     va_start(arg, formatP);
+//     vsnprintf_P(buffer, len + 1, formatP, arg);
+//     va_end(arg);
+//   }
+//   text(buffer, len);
+//   if (buffer != temp) {
+//     delete[] buffer;
+//   }
+//   delete[] temp;
+//   return len;
+// }
+// #endif
 
 void AsyncWebSocketClient::text(const char * message, size_t len){
   _queueMessage(new AsyncWebSocketBasicMessage(message, len));
@@ -1036,19 +1036,19 @@ size_t AsyncWebSocket::printfAll(const char *format, ...) {
   return len;
 }
 
-#ifndef ESP32
-size_t AsyncWebSocket::printf_P(uint32_t id, PGM_P formatP, ...){
-  AsyncWebSocketClient * c = client(id);
-  if(c != NULL){
-    va_list arg;
-    va_start(arg, formatP);
-    size_t len = c->printf_P(formatP, arg);
-    va_end(arg);
-    return len;
-  }
-  return 0;
-}
-#endif
+// #ifndef ESP32
+// size_t AsyncWebSocket::printf_P(uint32_t id, PGM_P formatP, ...){
+//   AsyncWebSocketClient * c = client(id);
+//   if(c != NULL){
+//     va_list arg;
+//     va_start(arg, formatP);
+//     size_t len = c->printf_P(formatP, arg);
+//     va_end(arg);
+//     return len;
+//   }
+//   return 0;
+// }
+// #endif
 
 size_t AsyncWebSocket::printfAll_P(PGM_P formatP, ...) {
   va_list arg;

@@ -37,10 +37,14 @@ extern "C" {
 #include <esp_err.h>
 #include <esp_wifi.h>
 #include <esp_event.h>
-#include <esp32-hal.h>
+// #include <esp32-hal.h>
 #include <lwip/ip_addr.h>
 #include "lwip/err.h"
 }
+
+#include <HAL_system/HAL_system_singleton.h>
+
+static HAL_system_api* device = HAL_system_singleton::get_HAL_system_instance();
 
 bool WiFiScanClass::_scanAsync = false;
 uint32_t WiFiScanClass::_scanStarted = 0;
@@ -81,7 +85,7 @@ int16_t WiFiScanClass::scanNetworks(bool async, bool show_hidden, bool passive, 
         config.scan_time.active.max = max_ms_per_chan;
     }
     if(esp_wifi_scan_start(&config, false) == ESP_OK) {
-        _scanStarted = millis();
+        _scanStarted = device->millisecs_since_init();
         if (!_scanStarted) { //Prevent 0 from millis overflow
 	    ++_scanStarted;
 	}
@@ -141,7 +145,7 @@ void * WiFiScanClass::_getScanInfoByIndex(int i)
  */
 int16_t WiFiScanClass::scanComplete()
 {
-    if (WiFiScanClass::_scanStarted && (millis()-WiFiScanClass::_scanStarted) > WiFiScanClass::_scanTimeout) { //Check is scan was started and if the delay expired, return WIFI_SCAN_FAILED in this case 
+    if (WiFiScanClass::_scanStarted && (device->millisecs_since_init()-WiFiScanClass::_scanStarted) > WiFiScanClass::_scanTimeout) { //Check is scan was started and if the delay expired, return WIFI_SCAN_FAILED in this case 
     	WiFiGenericClass::clearStatusBits(WIFI_SCANNING_BIT);
 	return WIFI_SCAN_FAILED;
     }

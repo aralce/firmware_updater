@@ -41,12 +41,18 @@ extern "C" {
 #include "lwip/err.h"
 #include "lwip/dns.h"
 #include "dhcpserver/dhcpserver_options.h"
-
+#include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/event_groups.h>
 } //extern "C"
 
-#include "esp32-hal.h"
+
+// #include "esp32-hal.h"
 #include <vector>
 #include "sdkconfig.h"
+
+const char WIFI_GENERIC_TAG[13] = "WiFi Generic";
 
 #define _byte_swap32(num) (((num>>24)&0xff) | ((num<<8)&0xff0000) | ((num>>8)&0xff00) | ((num<<24)&0xff000000))
 ESP_EVENT_DEFINE_BASE(ARDUINO_EVENTS);
@@ -91,61 +97,74 @@ esp_err_t set_esp_interface_ip(esp_interface_t interface, IPAddress local_ip=IPA
     info.gw.addr = static_cast<uint32_t>(gateway);
     info.netmask.addr = static_cast<uint32_t>(subnet);
 
-    log_v("Configuring %s static IP: " IPSTR ", MASK: " IPSTR ", GW: " IPSTR,
+    ESP_LOGV(WIFI_GENERIC_TAG, "Configuring %s static IP: " IPSTR ", MASK: " IPSTR ", GW: " IPSTR,
           interface == ESP_IF_WIFI_STA ? "Station" :
           interface == ESP_IF_WIFI_AP ? "SoftAP" : "Ethernet",
           IP2STR(&info.ip), IP2STR(&info.netmask), IP2STR(&info.gw));
+    // log_v("Configuring %s static IP: " IPSTR ", MASK: " IPSTR ", GW: " IPSTR,
+    //   interface == ESP_IF_WIFI_STA ? "Station" :
+    //   interface == ESP_IF_WIFI_AP ? "SoftAP" : "Ethernet",
+    //   IP2STR(&info.ip), IP2STR(&info.netmask), IP2STR(&info.gw));
 
     esp_err_t err = ESP_OK;
     if(interface != ESP_IF_WIFI_AP){
     	err = esp_netif_dhcpc_get_status(esp_netif, &status);
         if(err){
-        	log_e("DHCPC Get Status Failed! 0x%04x", err);
+        	ESP_LOGE(WIFI_GENERIC_TAG, "DHCPC Get Status Failed! 0x%04x", err);
+            // log_e("DHCPC Get Status Failed! 0x%04x", err);
         	return err;
         }
 		err = esp_netif_dhcpc_stop(esp_netif);
 		if(err && err != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED){
-			log_e("DHCPC Stop Failed! 0x%04x", err);
+			ESP_LOGE(WIFI_GENERIC_TAG, "DHCPC Stop Failed! 0x%04x", err);
+            // log_e("DHCPC Stop Failed! 0x%04x", err);
 			return err;
 		}
         err = esp_netif_set_ip_info(esp_netif, &info);
         if(err){
-        	log_e("Netif Set IP Failed! 0x%04x", err);
+        	ESP_LOGE(WIFI_GENERIC_TAG, "Netif Set IP Failed! 0x%04x", err);
+            // log_e("Netif Set IP Failed! 0x%04x", err);
         	return err;
         }
     	if(info.ip.addr == 0){
     		err = esp_netif_dhcpc_start(esp_netif);
     		if(err){
-            	log_e("DHCPC Start Failed! 0x%04x", err);
+            	ESP_LOGE(WIFI_GENERIC_TAG, "DHCPC Start Failed! 0x%04x", err);
+                // log_e("DHCPC Start Failed! 0x%04x", err);
             	return err;
             }
     	}
     } else {
     	err = esp_netif_dhcps_get_status(esp_netif, &status);
         if(err){
-        	log_e("DHCPS Get Status Failed! 0x%04x", err);
+        	ESP_LOGE(WIFI_GENERIC_TAG, "DHCPS Get Status Failed! 0x%04x", err);
+            // log_e("DHCPS Get Status Failed! 0x%04x", err);
         	return err;
         }
 		err = esp_netif_dhcps_stop(esp_netif);
 		if(err && err != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED){
-			log_e("DHCPS Stop Failed! 0x%04x", err);
+			ESP_LOGE(WIFI_GENERIC_TAG, "DHCPS Stop Failed! 0x%04x", err);
+            // log_e("DHCPS Stop Failed! 0x%04x", err);
 			return err;
 		}
         err = esp_netif_set_ip_info(esp_netif, &info);
         if(err){
-        	log_e("Netif Set IP Failed! 0x%04x", err);
+        	ESP_LOGE(WIFI_GENERIC_TAG, "Netif Set IP Failed! 0x%04x", err);
+            // log_e("Netif Set IP Failed! 0x%04x", err);
         	return err;
         }
 
         dhcps_lease_t lease;
         lease.enable = true;
         uint8_t CIDR = WiFiGenericClass::calculateSubnetCIDR(subnet);
-        log_v("SoftAP: %s | Gateway: %s | DHCP Start: %s | Netmask: %s", local_ip.toString().c_str(), gateway.toString().c_str(), dhcp_lease_start.toString().c_str(), subnet.toString().c_str());
+        ESP_LOGV(WIFI_GENERIC_TAG, "SoftAP: %s | Gateway: %s | DHCP Start: %s | Netmask: %s", local_ip.toString().c_str(), gateway.toString().c_str(), dhcp_lease_start.toString().c_str(), subnet.toString().c_str());
+        // log_v("SoftAP: %s | Gateway: %s | DHCP Start: %s | Netmask: %s", local_ip.toString().c_str(), gateway.toString().c_str(), dhcp_lease_start.toString().c_str(), subnet.toString().c_str());
         // netmask must have room for at least 12 IP addresses (AP + GW + 10 DHCP Leasing addresses)
         // netmask also must be limited to the last 8 bits of IPv4, otherwise this function won't work
         // IDF NETIF checks netmask for the 3rd byte: https://github.com/espressif/esp-idf/blob/master/components/esp_netif/lwip/esp_netif_lwip.c#L1857-L1862
         if (CIDR > 28 || CIDR < 24) {
-            log_e("Bad netmask. It must be from /24 to /28 (255.255.255. 0<->240)");
+            ESP_LOGE(WIFI_GENERIC_TAG, "Bad netmask. It must be from /24 to /28 (255.255.255. 0<->240)");
+            // log_e("Bad netmask. It must be from /24 to /28 (255.255.255. 0<->240)");
             return ESP_FAIL; //  ESP_FAIL if initializing failed
         }
         // The code below is ready for any netmask, not limited to 255.255.255.0
@@ -159,8 +178,10 @@ esp_err_t set_esp_interface_ip(esp_interface_t interface, IPAddress local_ip=IPA
         lease.end_ip.addr = lease.start_ip.addr + 10;
         // Check if local_ip is in the same subnet as the dhcp leasing range initial address
         if ((ap_ipaddr & netmask) != (dhcp_ipaddr & netmask)) {
-            log_e("The AP IP address (%s) and the DHCP start address (%s) must be in the same subnet", 
+            ESP_LOGE(WIFI_GENERIC_TAG, "The AP IP address (%s) and the DHCP start address (%s) must be in the same subnet", 
                 local_ip.toString().c_str(), IPAddress(_byte_swap32(dhcp_ipaddr)).toString().c_str());
+            // log_e("The AP IP address (%s) and the DHCP start address (%s) must be in the same subnet", 
+                // local_ip.toString().c_str(), IPAddress(_byte_swap32(dhcp_ipaddr)).toString().c_str());
             return ESP_FAIL; //  ESP_FAIL if initializing failed
         }
         // prevents DHCP lease range to overflow subnet range
@@ -168,26 +189,32 @@ esp_err_t set_esp_interface_ip(esp_interface_t interface, IPAddress local_ip=IPA
             // make first DHCP lease addr stay in the begining of the netmask range
             lease.start_ip.addr = (dhcp_ipaddr & netmask) + 1;
             lease.end_ip.addr = lease.start_ip.addr + 10;
-            log_w("DHCP Lease out of range - Changing DHCP leasing start to %s", IPAddress(_byte_swap32(lease.start_ip.addr)).toString().c_str());
+            ESP_LOGW(WIFI_GENERIC_TAG, "DHCP Lease out of range - Changing DHCP leasing start to %s", IPAddress(_byte_swap32(lease.start_ip.addr)).toString().c_str());
+            // log_w("DHCP Lease out of range - Changing DHCP leasing start to %s", IPAddress(_byte_swap32(lease.start_ip.addr)).toString().c_str());
         }
         // Check if local_ip is within DHCP range
         if (ap_ipaddr >= lease.start_ip.addr && ap_ipaddr <= lease.end_ip.addr) {
-            log_e("The AP IP address (%s) can't be within the DHCP range (%s -- %s)", 
+            ESP_LOGE(WIFI_GENERIC_TAG, "The AP IP address (%s) can't be within the DHCP range (%s -- %s)", 
                 local_ip.toString().c_str(), IPAddress(_byte_swap32(lease.start_ip.addr)).toString().c_str(), IPAddress(_byte_swap32(lease.end_ip.addr)).toString().c_str());
+            // log_e("The AP IP address (%s) can't be within the DHCP range (%s -- %s)", 
+                // local_ip.toString().c_str(), IPAddress(_byte_swap32(lease.start_ip.addr)).toString().c_str(), IPAddress(_byte_swap32(lease.end_ip.addr)).toString().c_str());
             return ESP_FAIL; //  ESP_FAIL if initializing failed
         }
         // Check if gateway is within DHCP range
         uint32_t gw_ipaddr = _byte_swap32(info.gw.addr);
         bool gw_in_same_subnet = (gw_ipaddr & netmask) == (ap_ipaddr & netmask);
         if (gw_in_same_subnet && gw_ipaddr >= lease.start_ip.addr && gw_ipaddr <= lease.end_ip.addr) {
-            log_e("The GatewayP address (%s) can't be within the DHCP range (%s -- %s)", 
+            ESP_LOGE(WIFI_GENERIC_TAG, "The GatewayP address (%s) can't be within the DHCP range (%s -- %s)", 
                 gateway.toString().c_str(), IPAddress(_byte_swap32(lease.start_ip.addr)).toString().c_str(), IPAddress(_byte_swap32(lease.end_ip.addr)).toString().c_str());
+            // log_e("The GatewayP address (%s) can't be within the DHCP range (%s -- %s)", 
+                // gateway.toString().c_str(), IPAddress(_byte_swap32(lease.start_ip.addr)).toString().c_str(), IPAddress(_byte_swap32(lease.end_ip.addr)).toString().c_str());
             return ESP_FAIL; //  ESP_FAIL if initializing failed
         }
         // all done, just revert back byte order of DHCP lease range
         lease.start_ip.addr = _byte_swap32(lease.start_ip.addr);
         lease.end_ip.addr = _byte_swap32(lease.end_ip.addr);
-        log_v("DHCP Server Range: %s to %s", IPAddress(lease.start_ip.addr).toString().c_str(), IPAddress(lease.end_ip.addr).toString().c_str());
+        ESP_LOGV(WIFI_GENERIC_TAG, "DHCP Server Range: %s to %s", IPAddress(lease.start_ip.addr).toString().c_str(), IPAddress(lease.end_ip.addr).toString().c_str());
+        // log_v("DHCP Server Range: %s to %s", IPAddress(lease.start_ip.addr).toString().c_str(), IPAddress(lease.end_ip.addr).toString().c_str());
         err = esp_netif_dhcps_option(
             esp_netif,
             ESP_NETIF_OP_SET,
@@ -195,7 +222,8 @@ esp_err_t set_esp_interface_ip(esp_interface_t interface, IPAddress local_ip=IPA
             (void*)&info.netmask.addr, sizeof(info.netmask.addr)
         );
 		if(err){
-        	log_e("DHCPS Set Netmask Failed! 0x%04x", err);
+        	ESP_LOGE(WIFI_GENERIC_TAG, "DHCPS Set Netmask Failed! 0x%04x", err);
+            // log_e("DHCPS Set Netmask Failed! 0x%04x", err);
         	return err;
         }
         err = esp_netif_dhcps_option(
@@ -205,12 +233,14 @@ esp_err_t set_esp_interface_ip(esp_interface_t interface, IPAddress local_ip=IPA
             (void*)&lease, sizeof(dhcps_lease_t)
         );
 		if(err){
-        	log_e("DHCPS Set Lease Failed! 0x%04x", err);
+        	ESP_LOGE(WIFI_GENERIC_TAG, "DHCPS Set Lease Failed! 0x%04x", err);
+            // log_e("DHCPS Set Lease Failed! 0x%04x", err);
         	return err;
         }
 		err = esp_netif_dhcps_start(esp_netif);
 		if(err){
-        	log_e("DHCPS Start Failed! 0x%04x", err);
+        	ESP_LOGE(WIFI_GENERIC_TAG, "DHCPS Start Failed! 0x%04x", err);
+            // log_e("DHCPS Start Failed! 0x%04x", err);
         	return err;
         }
     }
@@ -223,18 +253,21 @@ esp_err_t set_esp_interface_dns(esp_interface_t interface, IPAddress main_dns=IP
 	dns.ip.type = ESP_IPADDR_TYPE_V4;
 	dns.ip.u_addr.ip4.addr = static_cast<uint32_t>(main_dns);
 	if(dns.ip.u_addr.ip4.addr && esp_netif_set_dns_info(esp_netif, ESP_NETIF_DNS_MAIN, &dns) != ESP_OK){
-    	log_e("Set Main DNS Failed!");
+    	ESP_LOGE(WIFI_GENERIC_TAG, "Set Main DNS Failed!");
+        // log_e("Set Main DNS Failed!");
     	return ESP_FAIL;
     }
 	if(interface != ESP_IF_WIFI_AP){
 		dns.ip.u_addr.ip4.addr = static_cast<uint32_t>(backup_dns);
 		if(dns.ip.u_addr.ip4.addr && esp_netif_set_dns_info(esp_netif, ESP_NETIF_DNS_BACKUP, &dns) != ESP_OK){
-	    	log_e("Set Backup DNS Failed!");
+	    	ESP_LOGE(WIFI_GENERIC_TAG, "Set Backup DNS Failed!");
+            // log_e("Set Backup DNS Failed!");
 	    	return ESP_FAIL;
 	    }
 		dns.ip.u_addr.ip4.addr = static_cast<uint32_t>(fallback_dns);
 		if(dns.ip.u_addr.ip4.addr && esp_netif_set_dns_info(esp_netif, ESP_NETIF_DNS_FALLBACK, &dns) != ESP_OK){
-	    	log_e("Set Fallback DNS Failed!");
+	    	ESP_LOGE(WIFI_GENERIC_TAG, "Set Fallback DNS Failed!");
+            // log_e("Set Fallback DNS Failed!");
 	    	return ESP_FAIL;
 	    }
 	}
@@ -318,12 +351,14 @@ esp_err_t postArduinoEvent(arduino_event_t *data)
 	}
 	arduino_event_t * event = (arduino_event_t*)malloc(sizeof(arduino_event_t));
 	if(event == NULL){
-        log_e("Arduino Event Malloc Failed!");
+        ESP_LOGE(WIFI_GENERIC_TAG, "Arduino Event Malloc Failed!");
+        // log_e("Arduino Event Malloc Failed!");
         return ESP_FAIL;
 	}
 	memcpy(event, data, sizeof(arduino_event_t));
     if (xQueueSend(_arduino_event_queue, &event, portMAX_DELAY) != pdPASS) {
-        log_e("Arduino Event Send Failed!");
+        ESP_LOGE(WIFI_GENERIC_TAG, "Arduino Event Send Failed!");
+        // log_e("Arduino Event Send Failed!");
         return ESP_FAIL;
     }
     return ESP_OK;
@@ -337,41 +372,48 @@ static void _arduino_event_cb(void* arg, esp_event_base_t event_base, int32_t ev
 	 * STA
 	 * */
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-    	log_v("STA Started");
+    	ESP_LOGV(WIFI_GENERIC_TAG, "STA Started");
+        // log_v("STA Started");
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_STA_START;
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_STOP) {
-    	log_v("STA Stopped");
+    	ESP_LOGV(WIFI_GENERIC_TAG, "STA Stopped");
+        // log_v("STA Stopped");
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_STA_STOP;
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_AUTHMODE_CHANGE) {
     	#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             wifi_event_sta_authmode_change_t * event = (wifi_event_sta_authmode_change_t*)event_data;
-    	    log_v("STA Auth Mode Changed: From: %s, To: %s", auth_mode_str(event->old_mode), auth_mode_str(event->new_mode));
+    	    ESP_LOGV(WIFI_GENERIC_TAG, "STA Auth Mode Changed: From: %s, To: %s", auth_mode_str(event->old_mode), auth_mode_str(event->new_mode));
+            // log_v("STA Auth Mode Changed: From: %s, To: %s", auth_mode_str(event->old_mode), auth_mode_str(event->new_mode));
         #endif
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE;
     	memcpy(&arduino_event.event_info.wifi_sta_authmode_change, event_data, sizeof(wifi_event_sta_authmode_change_t));
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {
     	#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             wifi_event_sta_connected_t * event = (wifi_event_sta_connected_t*)event_data;
-    	    log_v("STA Connected: SSID: %s, BSSID: " MACSTR ", Channel: %u, Auth: %s", event->ssid, MAC2STR(event->bssid), event->channel, auth_mode_str(event->authmode));
+    	    ESP_LOGV(WIFI_GENERIC_TAG, "STA Connected: SSID: %s, BSSID: " MACSTR ", Channel: %u, Auth: %s", event->ssid, MAC2STR(event->bssid), event->channel, auth_mode_str(event->authmode));
+            // log_v("STA Connected: SSID: %s, BSSID: " MACSTR ", Channel: %u, Auth: %s", event->ssid, MAC2STR(event->bssid), event->channel, auth_mode_str(event->authmode));
         #endif
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_STA_CONNECTED;
     	memcpy(&arduino_event.event_info.wifi_sta_connected, event_data, sizeof(wifi_event_sta_connected_t));
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
     	#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             wifi_event_sta_disconnected_t * event = (wifi_event_sta_disconnected_t*)event_data;
-    	    log_v("STA Disconnected: SSID: %s, BSSID: " MACSTR ", Reason: %u", event->ssid, MAC2STR(event->bssid), event->reason);
+    	    ESP_LOGV(WIFI_GENERIC_TAG, "STA Disconnected: SSID: %s, BSSID: " MACSTR ", Reason: %u", event->ssid, MAC2STR(event->bssid), event->reason);
+            // log_v("STA Disconnected: SSID: %s, BSSID: " MACSTR ", Reason: %u", event->ssid, MAC2STR(event->bssid), event->reason);
         #endif
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_STA_DISCONNECTED;
     	memcpy(&arduino_event.event_info.wifi_sta_disconnected, event_data, sizeof(wifi_event_sta_disconnected_t));
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-            log_v("STA Got %sIP:" IPSTR, event->ip_changed?"New ":"Same ", IP2STR(&event->ip_info.ip));
+            ESP_LOGV(WIFI_GENERIC_TAG, "STA Got %sIP:" IPSTR, event->ip_changed?"New ":"Same ", IP2STR(&event->ip_info.ip));
+            // log_v("STA Got %sIP:" IPSTR, event->ip_changed?"New ":"Same ", IP2STR(&event->ip_info.ip));
     	#endif
         arduino_event.event_id = ARDUINO_EVENT_WIFI_STA_GOT_IP;
     	memcpy(&arduino_event.event_info.got_ip, event_data, sizeof(ip_event_got_ip_t));
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_LOST_IP) {
-    	log_v("STA IP Lost");
+    	ESP_LOGV(WIFI_GENERIC_TAG, "STA IP Lost");
+        // log_v("STA IP Lost");
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_STA_LOST_IP;
 
 	/*
@@ -380,7 +422,8 @@ static void _arduino_event_cb(void* arg, esp_event_base_t event_base, int32_t ev
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
     	   wifi_event_sta_scan_done_t * event = (wifi_event_sta_scan_done_t*)event_data;
-    	   log_v("SCAN Done: ID: %u, Status: %u, Results: %u", event->scan_id, event->status, event->number);
+    	   ESP_LOGV(WIFI_GENERIC_TAG, "SCAN Done: ID: %u, Status: %u, Results: %u", event->scan_id, event->status, event->number);
+        //    log_v("SCAN Done: ID: %u, Status: %u, Results: %u", event->scan_id, event->status, event->number);
         #endif
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_SCAN_DONE;
     	memcpy(&arduino_event.event_info.wifi_scan_done, event_data, sizeof(wifi_event_sta_scan_done_t));
@@ -389,36 +432,42 @@ static void _arduino_event_cb(void* arg, esp_event_base_t event_base, int32_t ev
 	 * AP
 	 * */
 	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_START) {
-		log_v("AP Started");
+		ESP_LOGV(WIFI_GENERIC_TAG, "AP Started");
+        // log_v("AP Started");
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_START;
 	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STOP) {
-		log_v("AP Stopped");
+		ESP_LOGV(WIFI_GENERIC_TAG, "AP Stopped");
+        // log_v("AP Stopped");
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_STOP;
 	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_PROBEREQRECVED) {
 		#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             wifi_event_ap_probe_req_rx_t * event = (wifi_event_ap_probe_req_rx_t*)event_data;
-		    log_v("AP Probe Request: RSSI: %d, MAC: " MACSTR, event->rssi, MAC2STR(event->mac));
+		    ESP_LOGV(WIFI_GENERIC_TAG, "AP Probe Request: RSSI: %d, MAC: " MACSTR, event->rssi, MAC2STR(event->mac));
+            // log_v("AP Probe Request: RSSI: %d, MAC: " MACSTR, event->rssi, MAC2STR(event->mac));
     	#endif
         arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED;
     	memcpy(&arduino_event.event_info.wifi_ap_probereqrecved, event_data, sizeof(wifi_event_ap_probe_req_rx_t));
 	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STACONNECTED) {
 		#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
-		    log_v("AP Station Connected: MAC: " MACSTR ", AID: %d", MAC2STR(event->mac), event->aid);
+		    ESP_LOGV(WIFI_GENERIC_TAG, "AP Station Connected: MAC: " MACSTR ", AID: %d", MAC2STR(event->mac), event->aid);
+            // log_v("AP Station Connected: MAC: " MACSTR ", AID: %d", MAC2STR(event->mac), event->aid);
     	#endif
         arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_STACONNECTED;
     	memcpy(&arduino_event.event_info.wifi_ap_staconnected, event_data, sizeof(wifi_event_ap_staconnected_t));
 	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STADISCONNECTED) {
 		#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
-		    log_v("AP Station Disconnected: MAC: " MACSTR ", AID: %d", MAC2STR(event->mac), event->aid);
+		    ESP_LOGV(WIFI_GENERIC_TAG, "AP Station Disconnected: MAC: " MACSTR ", AID: %d", MAC2STR(event->mac), event->aid);
+            // log_v("AP Station Disconnected: MAC: " MACSTR ", AID: %d", MAC2STR(event->mac), event->aid);
         #endif
     	arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_STADISCONNECTED;
     	memcpy(&arduino_event.event_info.wifi_ap_stadisconnected, event_data, sizeof(wifi_event_ap_stadisconnected_t));
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_AP_STAIPASSIGNED) {
     	#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
            ip_event_ap_staipassigned_t * event = (ip_event_ap_staipassigned_t*)event_data;
-    	   log_v("AP Station IP Assigned:" IPSTR, IP2STR(&event->ip));
+    	   ESP_LOGV(WIFI_GENERIC_TAG, "AP Station IP Assigned:" IPSTR, IP2STR(&event->ip));
+        //    log_v("AP Station IP Assigned:" IPSTR, IP2STR(&event->ip));
     	#endif
         arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED;
     	memcpy(&arduino_event.event_info.wifi_ap_staipassigned, event_data, sizeof(ip_event_ap_staipassigned_t));
@@ -427,22 +476,27 @@ static void _arduino_event_cb(void* arg, esp_event_base_t event_base, int32_t ev
 	 * ETH
 	 * */
 	} else if (event_base == ETH_EVENT && event_id == ETHERNET_EVENT_CONNECTED) {
-		log_v("Ethernet Link Up");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Ethernet Link Up");
+        // log_v("Ethernet Link Up");
     	arduino_event.event_id = ARDUINO_EVENT_ETH_CONNECTED;
     	memcpy(&arduino_event.event_info.eth_connected, event_data, sizeof(esp_eth_handle_t));
 	} else if (event_base == ETH_EVENT && event_id == ETHERNET_EVENT_DISCONNECTED) {
-		log_v("Ethernet Link Down");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Ethernet Link Down");
+        // log_v("Ethernet Link Down");
     	arduino_event.event_id = ARDUINO_EVENT_ETH_DISCONNECTED;
 	} else if (event_base == ETH_EVENT && event_id == ETHERNET_EVENT_START) {
-		log_v("Ethernet Started");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Ethernet Started");
+        // log_v("Ethernet Started");
     	arduino_event.event_id = ARDUINO_EVENT_ETH_START;
 	} else if (event_base == ETH_EVENT && event_id == ETHERNET_EVENT_STOP) {
-		log_v("Ethernet Stopped");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Ethernet Stopped");
+        // log_v("Ethernet Stopped");
     	arduino_event.event_id = ARDUINO_EVENT_ETH_STOP;
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_ETH_GOT_IP) {
         #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-            log_v("Ethernet got %sip:" IPSTR, event->ip_changed?"new":"", IP2STR(&event->ip_info.ip));
+            ESP_LOGV(WIFI_GENERIC_TAG, "Ethernet got %sip:" IPSTR, event->ip_changed?"new":"", IP2STR(&event->ip_info.ip));
+            // log_v("Ethernet got %sip:" IPSTR, event->ip_changed?"new":"", IP2STR(&event->ip_info.ip));
     	#endif
         arduino_event.event_id = ARDUINO_EVENT_ETH_GOT_IP;
     	memcpy(&arduino_event.event_info.got_ip, event_data, sizeof(ip_event_got_ip_t));
@@ -453,7 +507,8 @@ static void _arduino_event_cb(void* arg, esp_event_base_t event_base, int32_t ev
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_GOT_IP6) {
     	ip_event_got_ip6_t * event = (ip_event_got_ip6_t*)event_data;
     	esp_interface_t iface = get_esp_netif_interface(event->esp_netif);
-    	log_v("IF[%d] Got IPv6: IP Index: %d, Zone: %d, " IPV6STR, iface, event->ip_index, event->ip6_info.ip.zone, IPV62STR(event->ip6_info.ip));
+    	ESP_LOGV(WIFI_GENERIC_TAG, "IF[%d] Got IPv6: IP Index: %d, Zone: %d, " IPV6STR, iface, event->ip_index, event->ip6_info.ip.zone, IPV62STR(event->ip6_info.ip));
+        // log_v("IF[%d] Got IPv6: IP Index: %d, Zone: %d, " IPV6STR, iface, event->ip_index, event->ip6_info.ip.zone, IPV62STR(event->ip6_info.ip));
     	memcpy(&arduino_event.event_info.got_ip6, event_data, sizeof(ip_event_got_ip6_t));
     	if(iface == ESP_IF_WIFI_STA){
         	arduino_event.event_id = ARDUINO_EVENT_WIFI_STA_GOT_IP6;
@@ -491,55 +546,66 @@ static void _arduino_event_cb(void* arg, esp_event_base_t event_base, int32_t ev
 	 * SMART CONFIG
 	 * */
 	} else if (event_base == SC_EVENT && event_id == SC_EVENT_SCAN_DONE) {
-		log_v("SC Scan Done");
+		ESP_LOGV(WIFI_GENERIC_TAG, "SC Scan Done");
+        // log_v("SC Scan Done");
     	arduino_event.event_id = ARDUINO_EVENT_SC_SCAN_DONE;
     } else if (event_base == SC_EVENT && event_id == SC_EVENT_FOUND_CHANNEL) {
-    	log_v("SC Found Channel");
+    	ESP_LOGV(WIFI_GENERIC_TAG, "SC Found Channel");
+        // log_v("SC Found Channel");
     	arduino_event.event_id = ARDUINO_EVENT_SC_FOUND_CHANNEL;
     } else if (event_base == SC_EVENT && event_id == SC_EVENT_GOT_SSID_PSWD) {
         #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             smartconfig_event_got_ssid_pswd_t *event = (smartconfig_event_got_ssid_pswd_t *)event_data;
-            log_v("SC: SSID: %s, Password: %s", (const char *)event->ssid, (const char *)event->password);
+            ESP_LOGV(WIFI_GENERIC_TAG, "SC: SSID: %s, Password: %s", (const char *)event->ssid, (const char *)event->password);
+            // log_v("SC: SSID: %s, Password: %s", (const char *)event->ssid, (const char *)event->password);
         #endif
     	arduino_event.event_id = ARDUINO_EVENT_SC_GOT_SSID_PSWD;
     	memcpy(&arduino_event.event_info.sc_got_ssid_pswd, event_data, sizeof(smartconfig_event_got_ssid_pswd_t));
 
     } else if (event_base == SC_EVENT && event_id == SC_EVENT_SEND_ACK_DONE) {
-    	log_v("SC Send Ack Done");
+    	ESP_LOGV(WIFI_GENERIC_TAG, "SC Send Ack Done");
+        // log_v("SC Send Ack Done");
     	arduino_event.event_id = ARDUINO_EVENT_SC_SEND_ACK_DONE;
 
 	/*
 	 * Provisioning
 	 * */
 	} else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_INIT) {
-		log_v("Provisioning Initialized!");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Provisioning Initialized!");
+        // log_v("Provisioning Initialized!");
     	arduino_event.event_id = ARDUINO_EVENT_PROV_INIT;
 	} else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_DEINIT) {
-		log_v("Provisioning Uninitialized!");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Provisioning Uninitialized!");
+        // log_v("Provisioning Uninitialized!");
     	arduino_event.event_id = ARDUINO_EVENT_PROV_DEINIT;
 	} else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_START) {
-		log_v("Provisioning Start!");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Provisioning Start!");
+        // log_v("Provisioning Start!");
     	arduino_event.event_id = ARDUINO_EVENT_PROV_START;
 	} else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_END) {
-		log_v("Provisioning End!");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Provisioning End!");
+        // log_v("Provisioning End!");
 		wifi_prov_mgr_deinit();
     	arduino_event.event_id = ARDUINO_EVENT_PROV_END;
 	} else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_CRED_RECV) {
         #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             wifi_sta_config_t *event = (wifi_sta_config_t *)event_data;
-            log_v("Provisioned Credentials: SSID: %s, Password: %s", (const char *) event->ssid, (const char *) event->password);
+            ESP_LOGV(WIFI_GENERIC_TAG, "Provisioned Credentials: SSID: %s, Password: %s", (const char *) event->ssid, (const char *) event->password);
+            // log_v("Provisioned Credentials: SSID: %s, Password: %s", (const char *) event->ssid, (const char *) event->password);
         #endif
     	arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_RECV;
     	memcpy(&arduino_event.event_info.prov_cred_recv, event_data, sizeof(wifi_sta_config_t));
 	} else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_CRED_FAIL) {
         #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_ERROR
             wifi_prov_sta_fail_reason_t *reason = (wifi_prov_sta_fail_reason_t *)event_data;
-            log_e("Provisioning Failed: Reason : %s", (*reason == WIFI_PROV_STA_AUTH_ERROR)?"Authentication Failed":"AP Not Found");
+            ESP_LOGE(WIFI_GENERIC_TAG, "Provisioning Failed: Reason : %s", (*reason == WIFI_PROV_STA_AUTH_ERROR)?"Authentication Failed":"AP Not Found");
+            // log_e("Provisioning Failed: Reason : %s", (*reason == WIFI_PROV_STA_AUTH_ERROR)?"Authentication Failed":"AP Not Found");
         #endif
     	arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_FAIL;
     	memcpy(&arduino_event.event_info.prov_fail_reason, event_data, sizeof(wifi_prov_sta_fail_reason_t));
 	} else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_CRED_SUCCESS) {
-		log_v("Provisioning Success!");
+		ESP_LOGV(WIFI_GENERIC_TAG, "Provisioning Success!");
+        // log_v("Provisioning Success!");
     	arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_SUCCESS;
     }
     
@@ -552,7 +618,8 @@ static bool _start_network_event_task(){
     if(!_arduino_event_group){
         _arduino_event_group = xEventGroupCreate();
         if(!_arduino_event_group){
-            log_e("Network Event Group Create Failed!");
+            ESP_LOGE(WIFI_GENERIC_TAG, "Network Event Group Create Failed!");
+            // log_e("Network Event Group Create Failed!");
             return false;
         }
         xEventGroupSetBits(_arduino_event_group, WIFI_DNS_IDLE_BIT);
@@ -560,47 +627,55 @@ static bool _start_network_event_task(){
     if(!_arduino_event_queue){
     	_arduino_event_queue = xQueueCreate(32, sizeof(arduino_event_t*));
         if(!_arduino_event_queue){
-            log_e("Network Event Queue Create Failed!");
+            ESP_LOGE(WIFI_GENERIC_TAG, "Network Event Queue Create Failed!");
+            // log_e("Network Event Queue Create Failed!");
             return false;
         }
     }
 
     esp_err_t err = esp_event_loop_create_default();
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-    	log_e("esp_event_loop_create_default failed!");
+    	ESP_LOGE(WIFI_GENERIC_TAG, "esp_event_loop_create_default failed!");
+        // log_e("esp_event_loop_create_default failed!");
         return err;
     }
 
     if(!_arduino_event_task_handle){
-        xTaskCreateUniversal(_arduino_event_task, "arduino_events", 4096, NULL, ESP_TASKD_EVENT_PRIO - 1, &_arduino_event_task_handle, ARDUINO_EVENT_RUNNING_CORE);
+        xTaskCreatePinnedToCore(_arduino_event_task, "arduino_events", 4096, NULL, ESP_TASKD_EVENT_PRIO - 1, &_arduino_event_task_handle, 1);
         if(!_arduino_event_task_handle){
-            log_e("Network Event Task Start Failed!");
+            ESP_LOGE(WIFI_GENERIC_TAG, "Network Event Task Start Failed!");
+            // log_e("Network Event Task Start Failed!");
             return false;
         }
     }
 
     if(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb, NULL, NULL)){
-        log_e("event_handler_instance_register for WIFI_EVENT Failed!");
+        ESP_LOGE(WIFI_GENERIC_TAG, "event_handler_instance_register for WIFI_EVENT Failed!");
+        // log_e("event_handler_instance_register for WIFI_EVENT Failed!");
         return false;
     }
 
     if(esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb, NULL, NULL)){
-        log_e("event_handler_instance_register for IP_EVENT Failed!");
+        ESP_LOGE(WIFI_GENERIC_TAG, "event_handler_instance_register for IP_EVENT Failed!");
+        // log_e("event_handler_instance_register for IP_EVENT Failed!");
         return false;
     }
 
     if(esp_event_handler_instance_register(SC_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb, NULL, NULL)){
-        log_e("event_handler_instance_register for SC_EVENT Failed!");
+        ESP_LOGE(WIFI_GENERIC_TAG, "event_handler_instance_register for SC_EVENT Failed!");
+        // log_e("event_handler_instance_register for SC_EVENT Failed!");
         return false;
     }
 
     if(esp_event_handler_instance_register(ETH_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb, NULL, NULL)){
-        log_e("event_handler_instance_register for ETH_EVENT Failed!");
+        ESP_LOGE(WIFI_GENERIC_TAG, "event_handler_instance_register for ETH_EVENT Failed!");
+        // log_e("event_handler_instance_register for ETH_EVENT Failed!");
         return false;
     }
 
     if(esp_event_handler_instance_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb, NULL, NULL)){
-        log_e("event_handler_instance_register for WIFI_PROV_EVENT Failed!");
+        ESP_LOGE(WIFI_GENERIC_TAG, "event_handler_instance_register for WIFI_PROV_EVENT Failed!");
+        // log_e("event_handler_instance_register for WIFI_PROV_EVENT Failed!");
         return false;
     }
 
@@ -621,7 +696,8 @@ bool tcpipInit(){
         if(initialized){
         	initialized = _start_network_event_task();
         } else {
-        	log_e("esp_netif_init failed!");
+        	ESP_LOGE(WIFI_GENERIC_TAG, "esp_netif_init failed!");
+            // log_e("esp_netif_init failed!");
         }
     }
     return initialized;
@@ -640,7 +716,8 @@ bool WiFiGenericClass::useStaticBuffers(){
 
 void WiFiGenericClass::useStaticBuffers(bool bufferMode){
     if (lowLevelInitDone) {
-        log_w("WiFi already started. Call WiFi.mode(WIFI_MODE_NULL) before setting Static Buffer Mode.");
+        ESP_LOGW(WIFI_GENERIC_TAG, "WiFi already started. Call WiFi.mode(WIFI_MODE_NULL) before setting Static Buffer Mode.");
+        // log_w("WiFi already started. Call WiFi.mode(WIFI_MODE_NULL) before setting Static Buffer Mode.");
     } 
     _wifiUseStaticBuffers = bufferMode;
 }
@@ -677,7 +754,8 @@ bool wifiLowLevelInit(bool persistent){
 
         esp_err_t err = esp_wifi_init(&cfg);
         if(err){
-            log_e("esp_wifi_init %d", err);
+            ESP_LOGE(WIFI_GENERIC_TAG, "esp_wifi_init %d", err);
+            // log_e("esp_wifi_init %d", err);
         	lowLevelInitDone = false;
         	return lowLevelInitDone;
         }
@@ -714,7 +792,8 @@ static bool espWiFiStart(){
     esp_err_t err = esp_wifi_start();
     if (err != ESP_OK) {
         _esp_wifi_started = false;
-        log_e("esp_wifi_start %d", err);
+        ESP_LOGE(WIFI_GENERIC_TAG, "esp_wifi_start %d", err);
+        // log_e("esp_wifi_start %d", err);
         return _esp_wifi_started;
     }
     return _esp_wifi_started;
@@ -728,7 +807,8 @@ static bool espWiFiStop(){
     _esp_wifi_started = false;
     err = esp_wifi_stop();
     if(err){
-        log_e("Could not stop WiFi! %d", err);
+        ESP_LOGE(WIFI_GENERIC_TAG, "Could not stop WiFi! %d", err);
+        // log_e("Could not stop WiFi! %d", err);
         _esp_wifi_started = true;
         return false;
     }
@@ -928,7 +1008,8 @@ esp_err_t WiFiGenericClass::_eventCallback(arduino_event_t *event)
     static bool first_connect = true;
 
     if(event->event_id < ARDUINO_EVENT_MAX) {
-        log_d("Arduino Event: %d - %s", event->event_id, arduino_event_names[event->event_id]);
+        ESP_LOGD(WIFI_GENERIC_TAG, "Arduino Event: %d - %s", event->event_id, arduino_event_names[event->event_id]);
+        // log_d("Arduino Event: %d - %s", event->event_id, arduino_event_names[event->event_id]);
     }
     if(event->event_id == ARDUINO_EVENT_WIFI_SCAN_DONE) {
         WiFiScanClass::_scanDone();
@@ -937,7 +1018,8 @@ esp_err_t WiFiGenericClass::_eventCallback(arduino_event_t *event)
         WiFiSTAClass::_setStatus(WL_DISCONNECTED);
         setStatusBits(STA_STARTED_BIT);
         if(esp_wifi_set_ps(_sleepEnabled) != ESP_OK){
-            log_e("esp_wifi_set_ps failed");
+            ESP_LOGE(WIFI_GENERIC_TAG, "esp_wifi_set_ps failed");
+            // log_e("esp_wifi_set_ps failed");
         }
     } else if(event->event_id == ARDUINO_EVENT_WIFI_STA_STOP) {
         WiFiSTAClass::_setStatus(WL_NO_SHIELD);
@@ -952,7 +1034,8 @@ esp_err_t WiFiGenericClass::_eventCallback(arduino_event_t *event)
         // Reason 0 causes crash, use reason 1 (UNSPECIFIED) instead
         if(!reason)
 	    reason = WIFI_REASON_UNSPECIFIED;
-        log_w("Reason: %u - %s", reason, reason2str(reason));
+        ESP_LOGW(WIFI_GENERIC_TAG, "Reason: %u - %s", reason, reason2str(reason));
+        // log_w("Reason: %u - %s", reason, reason2str(reason));
         if(reason == WIFI_REASON_NO_AP_FOUND) {
             WiFiSTAClass::_setStatus(WL_NO_SSID_AVAIL);
         } else if((reason == WIFI_REASON_AUTH_FAIL) && !first_connect){
@@ -972,11 +1055,13 @@ esp_err_t WiFiGenericClass::_eventCallback(arduino_event_t *event)
         else if(first_connect) {                                                    //Retry once for all failure reasons
             first_connect = false;
             DoReconnect = true;
-            log_d("WiFi Reconnect Running");
+            ESP_LOGD(WIFI_GENERIC_TAG, "WiFi Reconnect Running");
+            // log_d("WiFi Reconnect Running");
         }
         else if(WiFi.getAutoReconnect() && _isReconnectableReason(reason)) {
             DoReconnect = true;
-            log_d("WiFi AutoReconnect Running");
+            ESP_LOGD(WIFI_GENERIC_TAG, "WiFi AutoReconnect Running");
+            // log_d("WiFi AutoReconnect Running");
         }
         else if(reason == WIFI_REASON_ASSOC_FAIL) {
             WiFiSTAClass::_setStatus(WL_CONNECT_FAILED);
@@ -990,10 +1075,14 @@ esp_err_t WiFiGenericClass::_eventCallback(arduino_event_t *event)
         uint8_t * ip = (uint8_t *)&(event->event_info.got_ip.ip_info.ip.addr);
         uint8_t * mask = (uint8_t *)&(event->event_info.got_ip.ip_info.netmask.addr);
         uint8_t * gw = (uint8_t *)&(event->event_info.got_ip.ip_info.gw.addr);
-        log_d("STA IP: %u.%u.%u.%u, MASK: %u.%u.%u.%u, GW: %u.%u.%u.%u",
+        ESP_LOGD(WIFI_GENERIC_TAG, "STA IP: %u.%u.%u.%u, MASK: %u.%u.%u.%u, GW: %u.%u.%u.%u",
             ip[0], ip[1], ip[2], ip[3],
             mask[0], mask[1], mask[2], mask[3],
             gw[0], gw[1], gw[2], gw[3]);
+        // log_d("STA IP: %u.%u.%u.%u, MASK: %u.%u.%u.%u, GW: %u.%u.%u.%u",
+            // ip[0], ip[1], ip[2], ip[3],
+            // mask[0], mask[1], mask[2], mask[3],
+            // gw[0], gw[1], gw[2], gw[3]);
 #endif
         WiFiSTAClass::_setStatus(WL_CONNECTED);
         setStatusBits(STA_HAS_IP_BIT | STA_CONNECTED_BIT);
@@ -1026,10 +1115,14 @@ esp_err_t WiFiGenericClass::_eventCallback(arduino_event_t *event)
         uint8_t * ip = (uint8_t *)&(event->event_info.got_ip.ip_info.ip.addr);
         uint8_t * mask = (uint8_t *)&(event->event_info.got_ip.ip_info.netmask.addr);
         uint8_t * gw = (uint8_t *)&(event->event_info.got_ip.ip_info.gw.addr);
-        log_d("ETH IP: %u.%u.%u.%u, MASK: %u.%u.%u.%u, GW: %u.%u.%u.%u",
+        ESP_LOGD(WIFI_GENERIC_TAG, "ETH IP: %u.%u.%u.%u, MASK: %u.%u.%u.%u, GW: %u.%u.%u.%u",
             ip[0], ip[1], ip[2], ip[3],
             mask[0], mask[1], mask[2], mask[3],
             gw[0], gw[1], gw[2], gw[3]);
+        // log_d("ETH IP: %u.%u.%u.%u, MASK: %u.%u.%u.%u, GW: %u.%u.%u.%u",
+            // ip[0], ip[1], ip[2], ip[3],
+            // mask[0], mask[1], mask[2], mask[3],
+            // gw[0], gw[1], gw[2], gw[3]);
 #endif
         setStatusBits(ETH_CONNECTED_BIT | ETH_HAS_IP_BIT);
 
@@ -1157,27 +1250,31 @@ bool WiFiGenericClass::mode(wifi_mode_t m)
     if(m & WIFI_MODE_STA){
     	err = set_esp_interface_hostname(ESP_IF_WIFI_STA, get_esp_netif_hostname());
         if(err){
-            log_e("Could not set hostname! %d", err);
+            ESP_LOGE(WIFI_GENERIC_TAG, "Could not set hostname! %d", err);
+            // log_e("Could not set hostname! %d", err);
             return false;
         }
     }
     err = esp_wifi_set_mode(m);
     if(err){
-        log_e("Could not set mode! %d", err);
+        ESP_LOGE(WIFI_GENERIC_TAG, "Could not set mode! %d", err);
+        // log_e("Could not set mode! %d", err);
         return false;
     }
     if(_long_range){
         if(m & WIFI_MODE_STA){
             err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
             if(err != ESP_OK){
-                log_e("Could not enable long range on STA! %d", err);
+                ESP_LOGE(WIFI_GENERIC_TAG, "Could not enable long range on STA! %d", err);
+                // log_e("Could not enable long range on STA! %d", err);
                 return false;
             }
         }
         if(m & WIFI_MODE_AP){
             err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_LR);
             if(err != ESP_OK){
-                log_e("Could not enable long range on AP! %d", err);
+                ESP_LOGE(WIFI_GENERIC_TAG, "Could not enable long range on AP! %d", err);
+                // log_e("Could not enable long range on AP! %d", err);
                 return false;
             }
         }
@@ -1188,7 +1285,8 @@ bool WiFiGenericClass::mode(wifi_mode_t m)
 
     #ifdef BOARD_HAS_DUAL_ANTENNA
         if(!setDualAntennaConfig(ANT1, ANT2, WIFI_RX_ANT_AUTO, WIFI_TX_ANT_AUTO)){
-            log_e("Dual Antenna Config failed!");
+            ESP_LOGE(WIFI_GENERIC_TAG, "Dual Antenna Config failed!");
+            // log_e("Dual Antenna Config failed!");
             return false;
         }
     #endif
@@ -1207,7 +1305,8 @@ wifi_mode_t WiFiGenericClass::getMode()
     }
     wifi_mode_t mode;
     if(esp_wifi_get_mode(&mode) != ESP_OK){
-        log_w("WiFi not started");
+        ESP_LOGW(WIFI_GENERIC_TAG, "WiFi not started");
+        // log_w("WiFi not started");
         return WIFI_MODE_NULL;
     }
     return mode;
@@ -1273,7 +1372,8 @@ bool WiFiGenericClass::setSleep(wifi_ps_type_t sleepType)
         _sleepEnabled = sleepType;
         if((getMode() & WIFI_MODE_STA) != 0){
             if(esp_wifi_set_ps(_sleepEnabled) != ESP_OK){
-                log_e("esp_wifi_set_ps failed!");
+                ESP_LOGE(WIFI_GENERIC_TAG, "esp_wifi_set_ps failed!");
+                // log_e("esp_wifi_set_ps failed!");
                 return false;
             }
         }
@@ -1298,7 +1398,8 @@ wifi_ps_type_t WiFiGenericClass::getSleep()
  */
 bool WiFiGenericClass::setTxPower(wifi_power_t power){
     if((getStatusBits() & (STA_STARTED_BIT | AP_STARTED_BIT)) == 0){
-        log_w("Neither AP or STA has been started");
+        ESP_LOGW(WIFI_GENERIC_TAG, "Neither AP or STA has been started");
+        // log_w("Neither AP or STA has been started");
         return false;
     }
     return esp_wifi_set_max_tx_power(power) == ESP_OK;
@@ -1307,7 +1408,8 @@ bool WiFiGenericClass::setTxPower(wifi_power_t power){
 wifi_power_t WiFiGenericClass::getTxPower(){
     int8_t power;
     if((getStatusBits() & (STA_STARTED_BIT | AP_STARTED_BIT)) == 0){
-        log_w("Neither AP or STA has been started");
+        ESP_LOGW(WIFI_GENERIC_TAG, "Neither AP or STA has been started");
+        // log_w("Neither AP or STA has been started");
         return WIFI_POWER_19_5dBm;
     }
     if(esp_wifi_get_max_tx_power(&power)){
@@ -1336,7 +1438,8 @@ bool WiFiGenericClass::initiateFTM(uint8_t frm_count, uint16_t burst_period, uin
   }
   // Request FTM session with the Responder
   if (ESP_OK != esp_wifi_ftm_initiate_session(&ftmi_cfg)) {
-    log_e("Failed to initiate FTM session");
+    ESP_LOGE(WIFI_GENERIC_TAG, "Failed to initiate FTM session");
+    // log_e("Failed to initiate FTM session");
     return false;
   }
   return true;
@@ -1355,7 +1458,8 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
     wifi_ant_gpio_config_t wifi_ant_io;
 
     if (ESP_OK != esp_wifi_get_ant_gpio(&wifi_ant_io)) {
-        log_e("Failed to get antenna configuration");
+        ESP_LOGE(WIFI_GENERIC_TAG, "Failed to get antenna configuration");
+        // log_e("Failed to get antenna configuration");
         return false;
     }
 
@@ -1365,7 +1469,8 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
     wifi_ant_io.gpio_cfg[1].gpio_select = 1;
 
     if (ESP_OK != esp_wifi_set_ant_gpio(&wifi_ant_io)) {
-        log_e("Failed to set antenna GPIO configuration");
+        ESP_LOGE(WIFI_GENERIC_TAG, "Failed to set antenna GPIO configuration");
+        // log_e("Failed to set antenna GPIO configuration");
         return false;
     }
 
@@ -1387,7 +1492,8 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
         ant_config.rx_ant_mode = WIFI_ANT_MODE_ANT1;
         break;
     case WIFI_RX_ANT_AUTO:
-        log_i("TX Antenna will be automatically selected");
+        ESP_LOGI(WIFI_GENERIC_TAG, "TX Antenna will be automatically selected");
+        // log_i("TX Antenna will be automatically selected");
         ant_config.rx_ant_default = WIFI_ANT_ANT0;
         ant_config.rx_ant_mode = WIFI_ANT_MODE_AUTO;
         // Force TX for AUTO if RX is AUTO
@@ -1395,7 +1501,8 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
         goto set_ant;
         break;
     default:
-        log_e("Invalid default antenna! Falling back to AUTO");
+        ESP_LOGE(WIFI_GENERIC_TAG, "Invalid default antenna! Falling back to AUTO");
+        // log_e("Invalid default antenna! Falling back to AUTO");
         ant_config.rx_ant_mode = WIFI_ANT_MODE_AUTO;
         break;
     }
@@ -1409,14 +1516,16 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
         ant_config.tx_ant_mode = WIFI_ANT_MODE_ANT1;
         break;
     case WIFI_TX_ANT_AUTO:
-        log_i("RX Antenna will be automatically selected");
+        ESP_LOGI(WIFI_GENERIC_TAG, "RX Antenna will be automatically selected");
+        // log_i("RX Antenna will be automatically selected");
         ant_config.rx_ant_default = WIFI_ANT_ANT0;
         ant_config.tx_ant_mode = WIFI_ANT_MODE_AUTO;
         // Force RX for AUTO if RX is AUTO
         ant_config.rx_ant_mode = WIFI_ANT_MODE_AUTO;
         break;
     default:
-        log_e("Invalid default antenna! Falling back to AUTO");
+        ESP_LOGE(WIFI_GENERIC_TAG, "Invalid default antenna! Falling back to AUTO");
+        // log_e("Invalid default antenna! Falling back to AUTO");
         ant_config.rx_ant_default = WIFI_ANT_ANT0;
         ant_config.tx_ant_mode = WIFI_ANT_MODE_AUTO;
         break;
@@ -1424,7 +1533,8 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
 
 set_ant:
     if (ESP_OK != esp_wifi_set_ant(&ant_config)) {
-        log_e("Failed to set antenna configuration");
+        ESP_LOGE(WIFI_GENERIC_TAG, "Failed to set antenna configuration");
+        // log_e("Failed to set antenna configuration");
         return false;
     }
 
@@ -1473,7 +1583,8 @@ int WiFiGenericClass::hostByName(const char* aHostname, IPAddress& aResult)
         }
         setStatusBits(WIFI_DNS_IDLE_BIT);
         if((uint32_t)aResult == 0){
-            log_e("DNS Failed for %s", aHostname);
+            ESP_LOGE(WIFI_GENERIC_TAG, "DNS Failed for %s", aHostname);
+            // log_e("DNS Failed for %s", aHostname);
         }
     }
     return (uint32_t)aResult != 0;
