@@ -19,24 +19,24 @@
 */
 #include "AsyncEventSource.h"
 
-static String_ generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect){
-  String_ ev = "";
+static String generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect){
+  String ev = "";
 
   if(reconnect){
     ev += "retry: ";
-    ev += String_(reconnect);
+    ev += String(reconnect);
     ev += "\r\n";
   }
 
   if(id){
     ev += "id: ";
-    ev += String_(id);
+    ev += String(id);
     ev += "\r\n";
   }
 
   if(event != NULL){
     ev += "event: ";
-    ev += String_(event);
+    ev += String(event);
     ev += "\r\n";
   }
 
@@ -230,7 +230,7 @@ void AsyncEventSourceClient::write(const char * message, size_t len){
 }
 
 void AsyncEventSourceClient::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
-  String_ ev = generateEventMessage(message, event, id, reconnect);
+  String ev = generateEventMessage(message, event, id, reconnect);
   _queueMessage(new AsyncEventSourceMessage(ev.c_str(), ev.length()));
 }
 
@@ -249,7 +249,7 @@ void AsyncEventSourceClient::_runQueue(){
 
 // Handler
 
-AsyncEventSource::AsyncEventSource(const String_& url)
+AsyncEventSource::AsyncEventSource(const String& url)
   : _url(url)
   , _clients(LinkedList<AsyncEventSourceClient *>([](AsyncEventSourceClient *c){ delete c; }))
   , _connectcb(NULL)
@@ -314,7 +314,7 @@ size_t AsyncEventSource::avgPacketsWaiting() const {
 void AsyncEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
 
 
-  String_ ev = generateEventMessage(message, event, id, reconnect);
+  String ev = generateEventMessage(message, event, id, reconnect);
   for(const auto &c: _clients){
     if(c->connected()) {
       c->write(ev.c_str(), ev.length());
@@ -354,7 +354,7 @@ AsyncEventSourceResponse::AsyncEventSourceResponse(AsyncEventSource *server){
 }
 
 void AsyncEventSourceResponse::_respond(AsyncWebServerRequest *request){
-  String_ out = _assembleHead(request->version());
+  String out = _assembleHead(request->version());
   request->client()->write(out.c_str(), _headLength);
   _state = RESPONSE_WAIT_ACK;
 }

@@ -6,6 +6,7 @@
 #include "AsyncTCP.h"
 #include "ESPAsyncWebServer.h"
 #include "AsyncElegantOTA.h"
+#include <HAL_system/HAL_system_singleton.h>
 
 const char* ssid = WIFI_NAME;
 const char* password = WIFI_PASSWORD;
@@ -13,6 +14,7 @@ const char* password = WIFI_PASSWORD;
 AsyncWebServer server(80);
 
 // Set your Static IP address
+#define LOCAL_IP_ADDRESS "192.168.1.184"
 IPAddress local_IP(192, 168, 1, 184);
 // Set your Gateway IP address
 IPAddress gateway(192, 168, 1, 1);
@@ -21,29 +23,32 @@ IPAddress subnet(255, 255, 0, 0);
 IPAddress primaryDNS(8, 8, 8, 8);   //optional
 IPAddress secondaryDNS(8, 8, 4, 4); //optional
 
+// static HAL_system_api* device = HAL_system_singleton::get_HAL_system_instance();
+
 static inline bool is_NOT_time_to_execute(uint32_t& ms_since_last_call, uint32_t time_between_calls) {
-    if (millis() - ms_since_last_call >= time_between_calls ) {
-      ms_since_last_call = millis();
+    if (device->millisecs_since_init() - ms_since_last_call >= time_between_calls ) {
+      ms_since_last_call = device->millisecs_since_init();
       return false;
     }
     return true;
 }
 
 void Firmware_updater::init_firmware_update_system(void) {
-    Serial.begin(115200);
-
     WiFi.setTxPower(WIFI_POWER_19_5dBm);
     WiFi.mode(WIFI_AP);
        // You can remove the password parameter if you want the AP to be open.
     if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
-      Serial.println("STA Failed to configure");
+        device->print_to_USB("STA Failed to configure");
+        // Serial.println("STA Failed to configure");
     }
     
     WiFi.softAP(ssid, password);
     
     IPAddress myIP = WiFi.softAPIP();
-    Serial.print("AP IP address: ");
-    Serial.println(myIP);
+    device->print_to_USB("AP IP address: ");
+    // Serial.print("AP IP address: ");
+    device->print_to_USB(LOCAL_IP_ADDRESS);
+    // Serial.println(myIP);
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->redirect("/update");
     });
@@ -51,7 +56,8 @@ void Firmware_updater::init_firmware_update_system(void) {
     AsyncElegantOTA.begin(&server);    // Start AsyncElegantOTA
     
     server.begin();
-    Serial.println("HTTP server started");
+    device->print_to_USB("HTTP server started");
+    // Serial.println("HTTP server started");
     is_active = true;
 }
 
@@ -121,6 +127,7 @@ void Firmware_updater::stop_firmware_updater() {
     static bool running = true;
     if (running) {
         running = false;
-        Serial.println("Server deactivated");
+        device->print_to_USB("Server deactivated");
+        // Serial.println("Server deactivated");
     }
 }

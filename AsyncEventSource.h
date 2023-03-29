@@ -100,11 +100,11 @@ class AsyncEventSourceClient {
 
 class AsyncEventSource: public AsyncWebHandler {
   private:
-    String_ _url;
+    String _url;
     LinkedList<AsyncEventSourceClient *> _clients;
     ArEventHandlerFunction _connectcb;
   public:
-    AsyncEventSource(const String_& url);
+    AsyncEventSource(const String& url);
     ~AsyncEventSource();
 
     const char * url() const { return _url.c_str(); }
@@ -123,7 +123,7 @@ class AsyncEventSource: public AsyncWebHandler {
 
 class AsyncEventSourceResponse: public AsyncWebServerResponse {
   private:
-    String_ _content;
+    String _content;
     AsyncEventSource *_server;
   public:
     AsyncEventSourceResponse(AsyncEventSource *server);

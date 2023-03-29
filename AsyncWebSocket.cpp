@@ -25,11 +25,14 @@
 #ifndef ESP8266
 #include "mbedtls/sha1.h"
 #include "mbedtls/version.h"
+#include <HAL_system/HAL_system_singleton.h>
 #else
 #include <Hash.h>
 #endif
 
 #define MAX_PRINTF_LEN 64
+
+static HAL_system_api* device = HAL_system_singleton::get_HAL_system_instance();
 
 size_t webSocketSendFrameWindow(AsyncClient *client){
   if(!client->canSend())
@@ -470,7 +473,7 @@ AsyncWebSocketClient::AsyncWebSocketClient(AsyncWebServerRequest *request, Async
   _clientId = _server->_getNextId();
   _status = WS_CONNECTED;
   _pstate = 0;
-  _lastMessageTime = millis();
+  _lastMessageTime = device->millisecs_since_init();
   _keepAlivePeriod = 0;
   _client->setRxTimeout(0);
   _client->onError([](void *r, AsyncClient* c, int8_t error){ (void)c; ((AsyncWebSocketClient*)(r))->_onError(error); }, this);
@@ -491,7 +494,7 @@ AsyncWebSocketClient::~AsyncWebSocketClient(){
 }
 
 void AsyncWebSocketClient::_onAck(size_t len, uint32_t time){
-  _lastMessageTime = millis();
+  _lastMessageTime = device->millisecs_since_init();
   if(!_controlQueue.isEmpty()){
     auto head = _controlQueue.front();
     if(head->finished()){
@@ -515,7 +518,7 @@ void AsyncWebSocketClient::_onAck(size_t len, uint32_t time){
 void AsyncWebSocketClient::_onPoll(){
   if(_client->canSend() && (!_controlQueue.isEmpty() || !_messageQueue.isEmpty())){
     _runQueue();
-  } else if(_keepAlivePeriod > 0 && _controlQueue.isEmpty() && _messageQueue.isEmpty() && (millis() - _lastMessageTime) >= _keepAlivePeriod){
+  } else if(_keepAlivePeriod > 0 && _controlQueue.isEmpty() && _messageQueue.isEmpty() && (device->millisecs_since_init() - _lastMessageTime) >= _keepAlivePeriod){
     ping((uint8_t *)AWSC_PING_PAYLOAD, AWSC_PING_PAYLOAD_LEN);
   }
 }
@@ -605,7 +608,7 @@ void AsyncWebSocketClient::_onDisconnect(){
 }
 
 void AsyncWebSocketClient::_onData(void *pbuf, size_t plen){
-  _lastMessageTime = millis();
+  _lastMessageTime = device->millisecs_since_init();
   uint8_t *data = (uint8_t*)pbuf;
   while(plen > 0){
     if(!_pstate){
@@ -769,7 +772,7 @@ void AsyncWebSocketClient::text(uint8_t * message, size_t len){
 void AsyncWebSocketClient::text(char * message){
   text(message, strlen(message));
 }
-void AsyncWebSocketClient::text(const String_ &message){
+void AsyncWebSocketClient::text(const String &message){
   text(message.c_str(), message.length());
 }
 void AsyncWebSocketClient::text(const __FlashStringHelper *data){
@@ -805,7 +808,7 @@ void AsyncWebSocketClient::binary(uint8_t * message, size_t len){
 void AsyncWebSocketClient::binary(char * message){
   binary(message, strlen(message));
 }
-void AsyncWebSocketClient::binary(const String_ &message){
+void AsyncWebSocketClient::binary(const String &message){
   binary(message.c_str(), message.length());
 }
 void AsyncWebSocketClient::binary(const __FlashStringHelper *data, size_t len){
@@ -844,7 +847,7 @@ uint16_t AsyncWebSocketClient::remotePort() {
  * Async Web Socket - Each separate socket location
  */
 
-AsyncWebSocket::AsyncWebSocket(const String_& url)
+AsyncWebSocket::AsyncWebSocket(const String& url)
   :_url(url)
   ,_clients(LinkedList<AsyncWebSocketClient *>([](AsyncWebSocketClient *c){ delete c; }))
   ,_cNextId(1)
@@ -1080,7 +1083,7 @@ void AsyncWebSocket::text(uint32_t id, uint8_t * message, size_t len){
 void AsyncWebSocket::text(uint32_t id, char * message){
   text(id, message, strlen(message));
 }
-void AsyncWebSocket::text(uint32_t id, const String_ &message){
+void AsyncWebSocket::text(uint32_t id, const String &message){
   text(id, message.c_str(), message.length());
 }
 void AsyncWebSocket::text(uint32_t id, const __FlashStringHelper *message){
@@ -1097,7 +1100,7 @@ void AsyncWebSocket::textAll(uint8_t * message, size_t len){
 void AsyncWebSocket::textAll(char * message){
   textAll(message, strlen(message));
 }
-void AsyncWebSocket::textAll(const String_ &message){
+void AsyncWebSocket::textAll(const String &message){
   textAll(message.c_str(), message.length());
 }
 void AsyncWebSocket::textAll(const __FlashStringHelper *message){
@@ -1115,7 +1118,7 @@ void AsyncWebSocket::binary(uint32_t id, uint8_t * message, size_t len){
 void AsyncWebSocket::binary(uint32_t id, char * message){
   binary(id, message, strlen(message));
 }
-void AsyncWebSocket::binary(uint32_t id, const String_ &message){
+void AsyncWebSocket::binary(uint32_t id, const String &message){
   binary(id, message.c_str(), message.length());
 }
 void AsyncWebSocket::binary(uint32_t id, const __FlashStringHelper *message, size_t len){
@@ -1132,7 +1135,7 @@ void AsyncWebSocket::binaryAll(uint8_t * message, size_t len){
 void AsyncWebSocket::binaryAll(char * message){
   binaryAll(message, strlen(message));
 }
-void AsyncWebSocket::binaryAll(const String_ &message){
+void AsyncWebSocket::binaryAll(const String &message){
   binaryAll(message.c_str(), message.length());
 }
 void AsyncWebSocket::binaryAll(const __FlashStringHelper *message, size_t len){
@@ -1234,7 +1237,7 @@ AsyncWebSocket::AsyncWebSocketClientLinkedList AsyncWebSocket::getClients() cons
  * Authentication code from https://github.com/Links2004/arduinoWebSockets/blob/master/src/WebSockets.cpp#L480
  */
 
-AsyncWebSocketResponse::AsyncWebSocketResponse(const String_& key, AsyncWebSocket *server){
+AsyncWebSocketResponse::AsyncWebSocketResponse(const String& key, AsyncWebSocket *server){
   _server = server;
   _code = 101;
   _sendContentLength = false;
@@ -1253,7 +1256,7 @@ AsyncWebSocketResponse::AsyncWebSocketResponse(const String_& key, AsyncWebSocke
 #ifdef ESP8266
   sha1(key + WS_STR_UUID, hash);
 #else
-  (String_&)key += WS_STR_UUID;
+  (String&)key += WS_STR_UUID;
   mbedtls_sha1_context ctx;
   mbedtls_sha1_init(&ctx);
 #if MBEDTLS_VERSION_NUMBER >= 0x02070000 && MBEDTLS_VERSION_NUMBER < 0x03000000
@@ -1283,7 +1286,7 @@ void AsyncWebSocketResponse::_respond(AsyncWebServerRequest *request){
     request->client()->close(true);
     return;
   }
-  String_ out = _assembleHead(request->version());
+  String out = _assembleHead(request->version());
   request->client()->write(out.c_str(), _headLength);
   _state = RESPONSE_WAIT_ACK;
 }

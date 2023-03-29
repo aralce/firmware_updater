@@ -22,7 +22,7 @@
 #include <HAL_system/HAL_system_singleton.h>
 #include <freertos/FreeRTOS.h>
 #include "AsyncTCP.h"
-#include <esp32-hal-log.h>
+#include <esp_log.h>
 extern "C"{
 #include "lwip/opt.h"
 #include "lwip/tcp.h"
@@ -98,6 +98,7 @@ static uint32_t _closed_index = []() {
     return 1;
 }();
 
+static const char ASYNC_CLIENT[17] = "Async Client";
 
 static inline bool _init_async_event_queue(){
     if(!_async_queue){
@@ -197,13 +198,15 @@ static void _async_service_task(void *pvParameters){
         if(_get_async_event(&packet)){
 #if CONFIG_ASYNC_TCP_USE_WDT
             if(esp_task_wdt_add(NULL) != ESP_OK){
-                log_e("Failed to add async task to WDT");
+                ESP_LOGE(ASYNC_CLIENT, "Failed to add async task to WDT");
+                // log_e("Failed to add async task to WDT");
             }
 #endif
             _handle_async_event(packet);
 #if CONFIG_ASYNC_TCP_USE_WDT
             if(esp_task_wdt_delete(NULL) != ESP_OK){
-                log_e("Failed to remove loop task from WDT");
+                ESP_LOGE(ASYNC_CLIENT, "Failed to remove loop task from WDT");
+                // log_e("Failed to remove loop task from WDT");
             }
 #endif
         }
@@ -565,7 +568,6 @@ static tcp_pcb * _tcp_listen_with_backlog(tcp_pcb * pcb, uint8_t backlog) {
 /*
   Async TCP Client
  */
-
 AsyncClient::AsyncClient(tcp_pcb* pcb)
 : _connect_cb(0)
 , _connect_cb_arg(0)
@@ -701,11 +703,13 @@ void AsyncClient::onPoll(AcConnectHandler cb, void* arg){
 
 bool AsyncClient::connect(IPAddress ip, uint16_t port){
     if (_pcb){
-        log_w("already connected, state %d", _pcb->state);
+        ESP_LOGW(ASYNC_CLIENT, "already connected, state %d", _pcb->state);
+        // log_w("already connected, state %d", _pcb->state);
         return false;
     }
     if(!_start_async_task()){
-        log_e("failed to start task");
+        ESP_LOGW(ASYNC_CLIENT, "failed to start task");
+        // log_e("failed to start task");
         return false;
     }
 
@@ -719,7 +723,8 @@ bool AsyncClient::connect(IPAddress ip, uint16_t port){
 
     tcp_pcb* pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
     if (!pcb){
-        log_e("pcb == NULL");
+        ESP_LOGE(ASYNC_CLIENT, "pcb == NULL");
+        // log_e("pcb == NULL");
         return false;
     }
 
@@ -737,7 +742,8 @@ bool AsyncClient::connect(const char* host, uint16_t port){
     ip_addr_t addr;
     
     if(!_start_async_task()){
-      log_e("failed to start task");
+      ESP_LOGE(ASYNC_CLIENT, "failed to start task");
+      //log_e("failed to start task");
       return false;
     }
     
@@ -752,7 +758,8 @@ bool AsyncClient::connect(const char* host, uint16_t port){
         _connect_port = port;
         return true;
     }
-    log_e("error: %d", err);
+    ESP_LOGE(ASYNC_CLIENT, "error: %d", err);
+    // log_e("error: %d", err);
     return false;
 }
 
@@ -913,7 +920,8 @@ void AsyncClient::_error(int8_t err) {
 //In LwIP Thread
 int8_t AsyncClient::_lwip_fin(tcp_pcb* pcb, int8_t err) {
     if(!_pcb || pcb != _pcb){
-        log_e("0x%08x != 0x%08x", (uint32_t)pcb, (uint32_t)_pcb);
+        ESP_LOGE(ASYNC_CLIENT, "0x%08x != 0x%08x", (uint32_t)pcb, (uint32_t)_pcb);
+        // log_e("0x%08x != 0x%08x", (uint32_t)pcb, (uint32_t)_pcb);
         return ERR_OK;
     }
     tcp_arg(_pcb, NULL);
@@ -977,11 +985,13 @@ int8_t AsyncClient::_recv(tcp_pcb* pcb, pbuf* pb, int8_t err) {
 
 int8_t AsyncClient::_poll(tcp_pcb* pcb){
     if(!_pcb){
-        log_w("pcb is NULL");
+        ESP_LOGW(ASYNC_CLIENT, "pcb is NULL");
+        // log_w("pcb is NULL");
         return ERR_OK;
     }
     if(pcb != _pcb){
-        log_e("0x%08x != 0x%08x", (uint32_t)pcb, (uint32_t)_pcb);
+        ESP_LOGE(ASYNC_CLIENT, "0x%08x != 0x%08x", (uint32_t)pcb, (uint32_t)_pcb);
+        // log_e("0x%08x != 0x%08x", (uint32_t)pcb, (uint32_t)_pcb);
         return ERR_OK;
     }
 
@@ -992,7 +1002,8 @@ int8_t AsyncClient::_poll(tcp_pcb* pcb){
         const uint32_t one_day = 86400000;
         bool last_tx_is_after_last_ack = (_rx_last_ack - _tx_last_packet + one_day) < one_day;
         if(last_tx_is_after_last_ack && (now - _tx_last_packet) >= _ack_timeout) {
-            log_w("ack timeout %d", pcb->state);
+            ESP_LOGW(ASYNC_CLIENT, "ack timeout %d", pcb->state);
+            // log_w("ack timeout %d", pcb->state);
             if(_timeout_cb)
                 _timeout_cb(_timeout_cb_arg, this, (now - _tx_last_packet));
             return ERR_OK;
@@ -1000,7 +1011,8 @@ int8_t AsyncClient::_poll(tcp_pcb* pcb){
     }
     // RX Timeout
     if(_rx_timeout && (now - _rx_last_packet) >= (_rx_timeout * 1000)) {
-        log_w("rx timeout %d", pcb->state);
+        ESP_LOGW(ASYNC_CLIENT, "rx timeout %d", pcb->state);
+        // log_w("rx timeout %d", pcb->state);
         _close();
         return ERR_OK;
     }
@@ -1280,7 +1292,7 @@ int8_t AsyncClient::_s_connected(void * arg, void * pcb, int8_t err){
 /*
   Async TCP Server
  */
-
+const char ASYNC_SERVER[] = "Async Server";
 AsyncServer::AsyncServer(IPAddress addr, uint16_t port)
 : _port(port)
 , _addr(addr)
@@ -1314,13 +1326,15 @@ void AsyncServer::begin(){
     }
 
     if(!_start_async_task()){
-        log_e("failed to start task");
+        ESP_LOGE(ASYNC_SERVER, "failed to start task");
+        // log_e("failed to start task");
         return;
     }
     int8_t err;
     _pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
     if (!_pcb){
-        log_e("_pcb == NULL");
+        ESP_LOGE(ASYNC_SERVER, "_pcb == NULL");
+        // log_e("_pcb == NULL");
         return;
     }
 
@@ -1335,14 +1349,16 @@ void AsyncServer::begin(){
 
     if (err != ERR_OK) {
         _tcp_close(_pcb, -1);
-        log_e("bind error: %d", err);
+        ESP_LOGE(ASYNC_SERVER, "bind error: %d", err);
+        // log_e("bind error: %d", err);
         return;
     }
 
     static uint8_t backlog = 5;
     _pcb = _tcp_listen_with_backlog(_pcb, backlog);
     if (!_pcb) {
-        log_e("listen_pcb == NULL");
+        ESP_LOGE(ASYNC_SERVER, "listen_pcb == NULL");
+        // log_e("listen_pcb == NULL");
         return;
     }
     tcp_arg(_pcb, (void*) this);
@@ -1373,7 +1389,7 @@ int8_t AsyncServer::_accept(tcp_pcb* pcb, int8_t err){
     if(tcp_close(pcb) != ERR_OK){
         tcp_abort(pcb);
     }
-    log_e("FAIL");
+    ESP_LOGE(ASYNC_SERVER, "FAIL");
     return ERR_OK;
 }
 

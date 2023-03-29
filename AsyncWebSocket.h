@@ -207,14 +207,14 @@ class AsyncWebSocketClient {
     bool queueIsFull();
 
     size_t printf(const char *format, ...)  __attribute__ ((format (printf, 2, 3)));
-#ifndef ESP32
-    size_t printf_P(PGM_P formatP, ...)  __attribute__ ((format (printf, 2, 3)));
-#endif
+// #ifndef ESP32
+//     size_t printf_P(PGM_P formatP, ...)  __attribute__ ((format (printf, 2, 3)));
+// #endif
     void text(const char * message, size_t len);
     void text(const char * message);
     void text(uint8_t * message, size_t len);
     void text(char * message);
-    void text(const String_ &message);
+    void text(const String &message);
     void text(const __FlashStringHelper *data);
     void text(AsyncWebSocketMessageBuffer *buffer); 
 
@@ -222,7 +222,7 @@ class AsyncWebSocketClient {
     void binary(const char * message);
     void binary(uint8_t * message, size_t len);
     void binary(char * message);
-    void binary(const String_ &message);
+    void binary(const String &message);
     void binary(const __FlashStringHelper *data, size_t len);
     void binary(AsyncWebSocketMessageBuffer *buffer); 
 
@@ -244,7 +244,7 @@ class AsyncWebSocket: public AsyncWebHandler {
   public:
     typedef LinkedList<AsyncWebSocketClient *> AsyncWebSocketClientLinkedList;
   private:
-    String_ _url;
+    String _url;
     AsyncWebSocketClientLinkedList _clients;
     uint32_t _cNextId;
     AwsEventHandler _eventHandler;
@@ -252,7 +252,7 @@ class AsyncWebSocket: public AsyncWebHandler {
     AsyncWebLock _lock;
 
   public:
-    AsyncWebSocket(const String_& url);
+    AsyncWebSocket(const String& url);
     ~AsyncWebSocket();
     const char * url() const { return _url.c_str(); }
     void enable(bool e){ _enabled = e; }
@@ -275,14 +275,14 @@ class AsyncWebSocket: public AsyncWebHandler {
     void text(uint32_t id, const char * message);
     void text(uint32_t id, uint8_t * message, size_t len);
     void text(uint32_t id, char * message);
-    void text(uint32_t id, const String_ &message);
+    void text(uint32_t id, const String &message);
     void text(uint32_t id, const __FlashStringHelper *message);
 
     void textAll(const char * message, size_t len);
     void textAll(const char * message);
     void textAll(uint8_t * message, size_t len);
     void textAll(char * message);
-    void textAll(const String_ &message);
+    void textAll(const String &message);
     void textAll(const __FlashStringHelper *message); //  need to convert
     void textAll(AsyncWebSocketMessageBuffer * buffer); 
 
@@ -290,14 +290,14 @@ class AsyncWebSocket: public AsyncWebHandler {
     void binary(uint32_t id, const char * message);
     void binary(uint32_t id, uint8_t * message, size_t len);
     void binary(uint32_t id, char * message);
-    void binary(uint32_t id, const String_ &message);
+    void binary(uint32_t id, const String &message);
     void binary(uint32_t id, const __FlashStringHelper *message, size_t len);
 
     void binaryAll(const char * message, size_t len);
     void binaryAll(const char * message);
     void binaryAll(uint8_t * message, size_t len);
     void binaryAll(char * message);
-    void binaryAll(const String_ &message);
+    void binaryAll(const String &message);
     void binaryAll(const __FlashStringHelper *message, size_t len);
     void binaryAll(AsyncWebSocketMessageBuffer * buffer); 
 
@@ -306,9 +306,9 @@ class AsyncWebSocket: public AsyncWebHandler {
 
     size_t printf(uint32_t id, const char *format, ...)  __attribute__ ((format (printf, 3, 4)));
     size_t printfAll(const char *format, ...)  __attribute__ ((format (printf, 2, 3)));
-#ifndef ESP32
-    size_t printf_P(uint32_t id, PGM_P formatP, ...)  __attribute__ ((format (printf, 3, 4)));
-#endif
+// #ifndef ESP32
+//     size_t printf_P(uint32_t id, PGM_P formatP, ...)  __attribute__ ((format (printf, 3, 4)));
+// #endif
     size_t printfAll_P(PGM_P formatP, ...)  __attribute__ ((format (printf, 2, 3)));
 
     //event listener
@@ -337,10 +337,10 @@ class AsyncWebSocket: public AsyncWebHandler {
 //WebServer response to authenticate the socket and detach the tcp client from the web server request
 class AsyncWebSocketResponse: public AsyncWebServerResponse {
   private:
-    String_ _content;
+    String _content;
     AsyncWebSocket *_server;
   public:
-    AsyncWebSocketResponse(const String_& key, AsyncWebSocket *server);
+    AsyncWebSocketResponse(const String& key, AsyncWebSocket *server);
     void _respond(AsyncWebServerRequest *request);
     size_t _ack(AsyncWebServerRequest *request, size_t len, uint32_t time);
     bool _sourceValid() const { return true; }

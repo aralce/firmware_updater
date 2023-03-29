@@ -1,0 +1,12 @@
+{
+    "name": "Firmware_updater",
+    "version": "1.0.0",
+    "author": "Ariel Cerfoglia",
+    "build": {
+        "inlcudeDir": ".",
+        "srcDir": ".",
+        "flags": ["-I WiFi"],
+        "srcFilter": "+<*> +<Wifi/*>"
+      }
+  }
+  

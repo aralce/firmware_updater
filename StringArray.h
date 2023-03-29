@@ -23,7 +23,7 @@
 
 #include "stddef.h"
 // #include "WString.h"
-#include "WString_.h"
+#include "WString.h"
 
 template <typename T>
 class LinkedListNode {
@@ -182,12 +182,12 @@ class LinkedList {
 };
 
 
-class StringArray : public LinkedList<String_> {
+class StringArray : public LinkedList<String> {
 public:
   
   StringArray() : LinkedList(nullptr) {}
   
-  bool containsIgnoreCase(const String_& str){
+  bool containsIgnoreCase(const String& str){
     for (const auto& s : *this) {
       if (str.equalsIgnoreCase(s)) {
         return true;

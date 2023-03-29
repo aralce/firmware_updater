@@ -21,7 +21,7 @@
 #ifndef ASYNCWEBSERVERHANDLERIMPL_H_
 #define ASYNCWEBSERVERHANDLERIMPL_H_
 
-#include "WString_.h"
+#include "WString.h"
 #ifdef ASYNCWEBSERVER_REGEX
 #include <regex>
 #endif
@@ -32,7 +32,7 @@
 class AsyncCallbackWebHandler: public AsyncWebHandler {
   private:
   protected:
-    String_ _uri;
+    String _uri;
     WebRequestMethodComposite _method;
     ArRequestHandlerFunction _onRequest;
     ArUploadHandlerFunction _onUpload;
@@ -40,7 +40,7 @@ class AsyncCallbackWebHandler: public AsyncWebHandler {
     bool _isRegex;
   public:
     AsyncCallbackWebHandler() : _uri(), _method(HTTP_ANY), _onRequest(NULL), _onUpload(NULL), _onBody(NULL), _isRegex(false) {}
-    void setUri(const String_& uri){ 
+    void setUri(const String& uri){ 
       _uri = uri; 
       _isRegex = uri.startsWith("^") && uri.endsWith("$");
     }
@@ -71,16 +71,16 @@ class AsyncCallbackWebHandler: public AsyncWebHandler {
         }
       } else 
 #endif
-      String_ slash("/");
+      String slash("/");
       if (_uri.length() && _uri.startsWith("/*.")) {
-         String_ uriTemplate = String_ (_uri);
+         String uriTemplate = String (_uri);
          uriTemplate = uriTemplate.substring(uriTemplate.lastIndexOf("."));
          if (!request->url().endsWith(uriTemplate))
            return false;
       }
       else
       if (_uri.length() && _uri.endsWith("*")) {
-        String_ uriTemplate = String_(_uri);
+        String uriTemplate = String(_uri);
 	uriTemplate = uriTemplate.substring(0, uriTemplate.length() - 1);
         if (!request->url().startsWith(uriTemplate))
           return false;
@@ -100,7 +100,7 @@ class AsyncCallbackWebHandler: public AsyncWebHandler {
       else
         request->send(500);
     }
-    virtual void handleUpload(AsyncWebServerRequest *request, const String_& filename, size_t index, uint8_t *data, size_t len, bool final) override final {
+    virtual void handleUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) override final {
       if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
         return request->requestAuthentication();
       if(_onUpload)

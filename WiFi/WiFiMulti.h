@@ -1,6 +1,7 @@
 /**
- * @file Hash.h
- * @date 20.05.2015
+ *
+ * @file ESP8266WiFiMulti.h
+ * @date 16.05.2015
  * @author Markus Sattler
  *
  * Copyright (c) 2015 Markus Sattler. All rights reserved.
@@ -22,17 +23,29 @@
  *
  */
 
-#ifndef HASH_H_
-#define HASH_H_
+#ifndef WIFICLIENTMULTI_H_
+#define WIFICLIENTMULTI_H_
 
-//#define DEBUG_SHA1
+#include "WiFi.h"
+#include <vector>
 
-void sha1(const uint8_t* data, uint32_t size, uint8_t hash[20]);
-void sha1(const char* data, uint32_t size, uint8_t hash[20]);
-void sha1(const String& data, uint8_t hash[20]);
+typedef struct {
+    char * ssid;
+    char * passphrase;
+} WifiAPlist_t;
 
-String sha1(const uint8_t* data, uint32_t size);
-String sha1(const char* data, uint32_t size);
-String sha1(const String& data);
+class WiFiMulti
+{
+public:
+    WiFiMulti();
+    ~WiFiMulti();
 
-#endif /* HASH_H_ */
+    bool addAP(const char* ssid, const char *passphrase = NULL);
+
+    uint8_t run(uint32_t connectTimeout=5000);
+
+private:
+    std::vector<WifiAPlist_t> APlist;
+};
+
+#endif /* WIFICLIENTMULTI_H_ */

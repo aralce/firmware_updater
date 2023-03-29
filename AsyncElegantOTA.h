@@ -1,7 +1,7 @@
 #ifndef AsyncElegantOTA_h
 #define AsyncElegantOTA_h
 
-#include "WString_.h"
+#include "WString.h"
 #include "stdlib_noniso.h"
 
 // #if defined(ESP8266)
@@ -19,7 +19,9 @@
 #include "Hash.h"
 #include "ESPAsyncWebServer.h"
 #include "elegantWebpage.h"
+#include <HAL_system/HAL_system_singleton.h>
 
+static HAL_system_api* device = HAL_system_singleton::get_HAL_system_instance();
 
 class AsyncElegantOtaClass{
 
@@ -79,7 +81,7 @@ class AsyncElegantOtaClass{
                 response->addHeader("Access-Control-Allow-Origin", "*");
                 request->send(response);
                 restart();
-            }, [&](AsyncWebServerRequest *request, String_ filename, size_t index, uint8_t *data, size_t len, bool final) {
+            }, [&](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
                 //Upload handler chunks in data
                 if(_authRequired){
                     if(!request->authenticate(_username.c_str(), _password.c_str())){
@@ -106,7 +108,7 @@ class AsyncElegantOtaClass{
                         int cmd = (filename == "filesystem") ? U_SPIFFS : U_FLASH;
                         if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd)) { // Start with max available size
                     #endif
-                        Update.printError(Serial);
+                        Update.printError();
                         return request->send(400, "text/plain", "OTA could not begin");
                     }
                 }
@@ -120,7 +122,7 @@ class AsyncElegantOtaClass{
                     
                 if (final) { // if the final flag is set then this is the last frame of data
                     if (!Update.end(true)) { //true to set the size to the current progress
-                        Update.printError(Serial);
+                        Update.printError();
                         return request->send(400, "text/plain", "Could not end OTA");
                     }
                 }else{
@@ -130,29 +132,33 @@ class AsyncElegantOtaClass{
         }
 
         void restart() {
-            yield();
-            delay(1000);
-            yield();
-            ESP.restart();
+            // yield();
+            // delay(1000);
+            // yield();
+            device->wait_ms_blocked(1000);
+            device->restart();
+            // ESP.restart();
         }
 
     private:
         AsyncWebServer *_server;
 
-        String_ getID(){
-            String_ id = "";
+        String getID(){
+            String id = "";
             #if defined(ESP8266)
-                id = String_(ESP.getChipId());
+                id = String(ESP.getChipId());
             #elif defined(ESP32)
-                id = String_((uint32_t)ESP.getEfuseMac(), HEX);
+                uint64_t _chipmacid = 0LL;
+                esp_efuse_mac_get_default((uint8_t*) (&_chipmacid));
+                id = String((uint32_t)_chipmacid, HEX);
             #endif
             id.toUpperCase();
             return id;
         }
 
-        String_ _id = getID();
-        String_ _username = "";
-        String_ _password = "";
+        String _id = getID();
+        String _username = "";
+        String _password = "";
         bool _authRequired = false;
 
 };
