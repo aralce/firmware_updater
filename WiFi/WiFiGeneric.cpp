@@ -35,6 +35,7 @@ extern "C" {
 
 #include <esp_err.h>
 #include <esp_wifi.h>
+#include <nvs_flash.h>
 #include <esp_event.h>
 #include "lwip/ip_addr.h"
 #include "lwip/opt.h"
@@ -752,9 +753,18 @@ bool wifiLowLevelInit(bool persistent){
             cfg.dynamic_rx_buf_num = 32;
         }
 
+        esp_err_t ret = nvs_flash_init();
+        if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+          // NVS partition was truncated and needs to be erased
+          // Retry nvs_flash_init
+          ESP_ERROR_CHECK(nvs_flash_erase());
+          ret = nvs_flash_init();
+        }
+        ESP_ERROR_CHECK(ret);
+
         esp_err_t err = esp_wifi_init(&cfg);
         if(err){
-            ESP_LOGE(WIFI_GENERIC_TAG, "esp_wifi_init %d", err);
+            ESP_LOGE(WIFI_GENERIC_TAG, "esp_wifi_init -- %s", esp_err_to_name(err));
             // log_e("esp_wifi_init %d", err);
         	lowLevelInitDone = false;
         	return lowLevelInitDone;
