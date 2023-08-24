@@ -32,7 +32,7 @@
 #define SPI_SECTORS_PER_BLOCK   16      // usually large erase block is 32k/64k
 #define SPI_FLASH_BLOCK_SIZE    (SPI_SECTORS_PER_BLOCK*SPI_FLASH_SEC_SIZE)
 
-#define LOW 0
+#define LOW_STATE 0
 
 class UpdateClass {
   public:
@@ -49,7 +49,7 @@ class UpdateClass {
       Call this to check the space needed for the update
       Will return false if there is not enough space
     */
-    bool begin(size_t size=UPDATE_SIZE_UNKNOWN, int command = U_FLASH, int ledPin = -1, uint8_t ledOn = LOW, const char *label = NULL);
+    bool begin(size_t size=UPDATE_SIZE_UNKNOWN, int command = U_FLASH, int ledPin = -1, uint8_t ledOn = LOW_STATE, const char *label = NULL);
 
     /*
       Writes a buffer to the flash and increments the address
