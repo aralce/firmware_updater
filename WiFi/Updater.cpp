@@ -370,7 +370,7 @@ size_t UpdateClass::writeStream(Stream &data) {
     }
 
     if(_ledPin != -1) {
-        gpio->set_pin_mode(_ledPin, HAL_pin_mode::OUTPUT_mode);
+        gpio->set_pin_mode(_ledPin, HAL_pin_mode::OUTPUT_MODE);
         // pinMode(_ledPin, OUTPUT);
     }
 
